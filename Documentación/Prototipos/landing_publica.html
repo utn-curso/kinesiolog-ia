@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --teal:#0D9488;--teal-lt:#CCFBF1;--teal-mid:#5EEAD4;
+  --coral:#F97316;--coral-lt:#FFF7ED;
+  --bg:#F8FAFB;--surface:#fff;
+  --text:#0F172A;--muted:#64748B;--border:#E2E8F0;
+  --r:14px;--shadow:0 2px 16px rgba(0,0,0,.07);
+  font-family:'Nunito',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-size:15px;line-height:1.6}
+
+/* NAV */
+nav{background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:62px}
+.logo{font-size:20px;font-weight:900;color:var(--teal);letter-spacing:-.5px;display:flex;align-items:center;gap:6px}
+.logo-dot{width:8px;height:8px;background:var(--coral);border-radius:50%;margin-bottom:2px}
+.nav-links{display:flex;gap:28px;list-style:none}
+.nav-links a{text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;transition:color .2s}
+.nav-links a:hover{color:var(--teal)}
+.nav-cta{background:var(--teal);color:#fff;border:none;padding:9px 20px;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:background .2s}
+.nav-cta:hover{background:#0F766E}
+
+/* HERO */
+.hero{padding:64px 32px 56px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;max-width:1100px;margin:0 auto}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:var(--teal-lt);color:var(--teal);font-size:12px;font-weight:700;padding:5px 12px;border-radius:99px;margin-bottom:18px;text-transform:uppercase;letter-spacing:.5px}
+.hero h1{font-size:42px;font-weight:900;line-height:1.15;color:var(--text);margin-bottom:16px}
+.hero h1 span{color:var(--teal)}
+.hero p{color:var(--muted);font-size:16px;margin-bottom:28px;max-width:420px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn-primary{background:var(--teal);color:#fff;border:none;padding:13px 26px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-primary:hover{background:#0F766E;transform:translateY(-1px)}
+.btn-secondary{background:#fff;color:var(--teal);border:2px solid var(--teal);padding:11px 22px;border-radius:10px;font-weight:700;font-size:15px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-secondary:hover{background:var(--teal-lt)}
+.hero-visual{background:linear-gradient(135deg,#CCFBF1 0%,#E0F2FE 100%);border-radius:24px;padding:32px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.stat-card{background:#fff;border-radius:12px;padding:16px 20px;display:flex;align-items:center;gap:14px}
+.stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.stat-icon.teal{background:var(--teal-lt);color:var(--teal)}
+.stat-icon.coral{background:var(--coral-lt);color:var(--coral)}
+.stat-icon.blue{background:#EFF6FF;color:#3B82F6}
+.stat-val{font-size:22px;font-weight:800;color:var(--text)}
+.stat-lbl{font-size:12px;color:var(--muted);font-weight:600}
+
+/* SERVICES */
+.section{padding:48px 32px;max-width:1100px;margin:0 auto}
+.section-header{text-align:center;margin-bottom:36px}
+.section-header h2{font-size:30px;font-weight:800;margin-bottom:8px}
+.section-header p{color:var(--muted);max-width:480px;margin:0 auto}
+.services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.service-card{background:#fff;border-radius:var(--r);padding:28px;border:1px solid var(--border);transition:all .25s;cursor:pointer}
+.service-card:hover{border-color:var(--teal);transform:translateY(-3px);box-shadow:var(--shadow)}
+.svc-icon{width:52px;height:52px;border-radius:14px;background:var(--teal-lt);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
+.service-card h3{font-size:17px;font-weight:800;margin-bottom:8px}
+.service-card p{color:var(--muted);font-size:14px;line-height:1.6}
+
+/* TEAM */
+.team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:0}
+.team-card{background:#fff;border-radius:var(--r);padding:24px;border:1px solid var(--border);text-align:center;transition:all .25s}
+.team-card:hover{border-color:var(--teal-mid);transform:translateY(-2px);box-shadow:var(--shadow)}
+.avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#fff}
+.team-card h4{font-size:15px;font-weight:800;margin-bottom:4px}
+.team-card .esp{font-size:12px;color:var(--teal);font-weight:700;background:var(--teal-lt);padding:3px 10px;border-radius:99px;display:inline-block;margin-bottom:8px}
+.team-card p{font-size:13px;color:var(--muted)}
+
+/* MAP SECTION */
+.map-section{background:#fff;border-top:1px solid var(--border);padding:48px 32px}
+.map-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1.4fr;gap:40px;align-items:center}
+.map-info h2{font-size:26px;font-weight:800;margin-bottom:12px}
+.map-info p{color:var(--muted);margin-bottom:20px}
+.map-detail{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px}
+.map-detail-icon{width:32px;height:32px;background:var(--teal-lt);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.map-detail-text{font-size:14px;color:var(--muted);font-weight:600}
+.map-placeholder{background:linear-gradient(135deg,#E0F2FE,#CCFBF1);border-radius:16px;height:240px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:var(--teal);border:1px solid var(--border);position:relative;overflow:hidden}
+.map-placeholder::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20h40M20 0v40' stroke='%230D9488' stroke-width='.3' stroke-opacity='.15'/%3E%3C/svg%3E")}
+.map-pin{font-size:36px}
+.map-label{font-size:13px;font-weight:700;background:#fff;padding:6px 14px;border-radius:99px;border:1px solid var(--border)}
+
+/* FOOTER */
+footer{background:var(--text);color:#94A3B8;padding:32px;text-align:center;font-size:13px}
+footer strong{color:#fff}
+
+/* SCROLL HINT */
+.scroll-hint{text-align:center;padding:12px 0;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+</style>
+
+<nav>
+  <div class="logo"><div class="logo-dot"></div>KineMov</div>
+  <ul class="nav-links">
+    <li><a href="#">Inicio</a></li>
+    <li><a href="#">Servicios</a></li>
+    <li><a href="#">Profesionales</a></li>
+    <li><a href="#">Contacto</a></li>
+  </ul>
+  <button class="nav-cta" onclick="sendPrompt('Mostrame el prototipo de reserva de turnos')">Reservar turno</button>
+</nav>
+
+<div style="background:#fff">
+<div class="hero">
+  <div>
+    <div class="hero-tag">✦ Centro de Kinesiología</div>
+    <h1>Tu recuperación, <span>en el mejor camino</span></h1>
+    <p>Turnos online, seguimiento personalizado y atención especializada para cada etapa de tu recuperación.</p>
+    <div class="hero-btns">
+      <button class="btn-primary" onclick="sendPrompt('Mostrame el prototipo de reserva de turnos')">Reservar turno</button>
+      <button class="btn-secondary">Ver servicios</button>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="stat-card">
+      <div class="stat-icon teal">📅</div>
+      <div><div class="stat-val">+1.200</div><div class="stat-lbl">Turnos atendidos este año</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon coral">⭐</div>
+      <div><div class="stat-val">4.9/5</div><div class="stat-lbl">Satisfacción de pacientes</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">🩺</div>
+      <div><div class="stat-val">3 Kinesiólogos</div><div class="stat-lbl">Especializados y matriculados</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div style="background:var(--bg)">
+<div class="section">
+  <div class="section-header">
+    <h2>Nuestros servicios</h2>
+    <p>Tratamientos personalizados para tu recuperación y bienestar físico</p>
+  </div>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="svc-icon">🔍</div>
+      <h3>Evaluación kinésica</h3>
+      <p>Diagnóstico funcional completo para diseñar tu plan de tratamiento personalizado.</p>
+    </div>
+    <div class="service-card">
+      <div class="svc-icon">🤸</div>
+      <h3>Rehabilitación física</h3>
+      <p>Ejercicios terapéuticos y técnicas manuales para tu recuperación óptima.</p>
+    </div>
+    <div class="service-card">
+      <div class="svc-icon">⚡</div>
+      <h3>Electroterapia</h3>
+      <p>Tratamientos con ultrasonido, TENS y corrientes para alivio del dolor.</p>
+    </div>
+    <div class="service-card">
+      <div class="svc-icon">🧘</div>
+      <h3>Pilates terapéutico</h3>
+      <p>Método Pilates adaptado a patologías específicas con seguimiento continuo.</p>
+    </div>
+    <div class="service-card">
+      <div class="svc-icon">🦵</div>
+      <h3>Post-operatorio</h3>
+      <p>Acompañamiento especializado en la recuperación después de cirugías.</p>
+    </div>
+    <div class="service-card">
+      <div class="svc-icon">💪</div>
+      <h3>Deporte y prevención</h3>
+      <p>Preparación y prevención de lesiones para deportistas amateurs y profesionales.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<div style="background:#fff">
+<div class="section">
+  <div class="section-header">
+    <h2>Nuestro equipo</h2>
+    <p>Profesionales matriculados con años de experiencia</p>
+  </div>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="avatar" style="background:linear-gradient(135deg,#0D9488,#14B8A6)">MA</div>
+      <h4>Lic. María Acosta</h4>
+      <span class="esp">Traumatología</span>
+      <p>10 años de experiencia en rehabilitación post-quirúrgica y deportiva.</p>
+    </div>
+    <div class="team-card">
+      <div class="avatar" style="background:linear-gradient(135deg,#3B82F6,#6366F1)">JR</div>
+      <h4>Lic. Juan Rodríguez</h4>
+      <span class="esp">Neurológica</span>
+      <p>Especialista en patologías neurológicas y rehabilitación funcional.</p>
+    </div>
+    <div class="team-card">
+      <div class="avatar" style="background:linear-gradient(135deg,#F97316,#EAB308)">SV</div>
+      <h4>Lic. Sofía Vega</h4>
+      <span class="esp">Pilates</span>
+      <p>Instructora certificada en Pilates terapéutico y kinesiología deportiva.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="map-section">
+  <div class="map-inner">
+    <div class="map-info">
+      <h2>¿Dónde estamos?</h2>
+      <p>Encontranos fácilmente en el centro de la ciudad, con acceso en transporte público y estacionamiento cercano.</p>
+      <div class="map-detail"><div class="map-detail-icon">📍</div><div class="map-detail-text">Av. Colón 1234, Mar del Plata<br>Buenos Aires, Argentina</div></div>
+      <div class="map-detail"><div class="map-detail-icon">🕐</div><div class="map-detail-text">Lunes a Viernes: 8:00 – 20:00<br>Sábados: 9:00 – 13:00</div></div>
+      <div class="map-detail"><div class="map-detail-icon">📞</div><div class="map-detail-text">+54 223 XXX-XXXX<br>info@kinemov.com.ar</div></div>
+    </div>
+    <div class="map-placeholder">
+      <div class="map-pin">📍</div>
+      <div class="map-label">Google Maps — KineMov</div>
+      <div style="font-size:12px;color:var(--muted);position:relative">Mapa embebido (RF-16)</div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <strong>KineMov</strong> — Centro de Kinesiología &nbsp;·&nbsp; Av. Colón 1234, Mar del Plata &nbsp;·&nbsp; © 2026
+</footer>

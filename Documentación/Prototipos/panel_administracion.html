@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --teal:#0D9488;--teal-lt:#CCFBF1;
+  --coral:#F97316;--coral-lt:#FFF7ED;
+  --bg:#F1F5F9;--surface:#fff;
+  --text:#0F172A;--muted:#64748B;--border:#E2E8F0;
+  font-family:'Nunito',sans-serif;
+}
+body{background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+/* SIDEBAR */
+.sidebar{width:200px;background:#0F172A;display:flex;flex-direction:column;flex-shrink:0}
+.sb-logo{padding:20px 18px;font-size:17px;font-weight:900;color:#fff;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo span{color:var(--teal-lt)}
+.sb-section{padding:14px 10px 6px;font-size:10px;font-weight:800;color:rgba(255,255,255,.3);letter-spacing:.8px;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;margin:2px 6px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;font-weight:700;transition:all .2s}
+.sb-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-item.active{background:var(--teal);color:#fff}
+.sb-item .icon{font-size:14px}
+.sb-bottom{margin-top:auto;padding:14px;border-top:1px solid rgba(255,255,255,.08)}
+.sb-user{display:flex;align-items:center;gap:8px}
+.sb-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0D9488,#14B8A6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+.sb-user-info .name{font-size:12px;font-weight:700;color:#fff}
+.sb-user-info .role{font-size:10px;color:rgba(255,255,255,.4)}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar h2{font-size:16px;font-weight:800}
+.topbar-right{display:flex;gap:10px;align-items:center}
+.notif{position:relative;cursor:pointer;font-size:16px}
+.notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;background:#EF4444;border-radius:50%;border:1.5px solid #fff}
+.date-chip{font-size:12px;color:var(--muted);font-weight:700;background:#F8FAFB;border:1px solid var(--border);padding:5px 10px;border-radius:7px}
+
+/* CONTENT */
+.content{padding:24px;display:flex;flex-direction:column;gap:20px}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.stat-card{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--border);transition:all .2s}
+.stat-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);transform:translateY(-1px)}
+.sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.sc-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sc-badge{font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px}
+.sc-badge.up{background:#F0FDF4;color:#16A34A}
+.sc-badge.down{background:#FEF2F2;color:#DC2626}
+.sc-val{font-size:28px;font-weight:900;line-height:1}
+.sc-lbl{font-size:12px;color:var(--muted);font-weight:700;margin-top:4px}
+
+/* MIDDLE ROW */
+.mid-row{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+.card{background:#fff;border-radius:14px;border:1px solid var(--border);padding:20px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-header h3{font-size:15px;font-weight:800}
+.card-header .more{font-size:12px;color:var(--teal);font-weight:700;cursor:pointer}
+
+/* BAR CHART */
+.bar-chart{display:flex;align-items:flex-end;gap:8px;height:120px;padding-bottom:24px;position:relative}
+.bar-chart::after{content:'';position:absolute;bottom:24px;left:0;right:0;height:1px;background:var(--border)}
+.bar-group{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{width:100%;border-radius:6px 6px 0 0;transition:all .3s;cursor:pointer;position:relative}
+.bar:hover{filter:brightness(.9)}
+.bar-lbl{font-size:10px;color:var(--muted);font-weight:700;margin-top:4px}
+.bar-val{font-size:9px;color:var(--muted);font-weight:800;position:absolute;top:-14px;width:100%;text-align:center}
+
+/* TODAY TABLE */
+.today-table{width:100%;border-collapse:collapse}
+.today-table th{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 10px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.today-table td{padding:10px;font-size:13px;border-bottom:1px solid #F8FAFB;vertical-align:middle}
+.today-table tr:last-child td{border-bottom:none}
+.today-table tr:hover td{background:#FAFAFA}
+.status-pill{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:800}
+.s-confirmed{background:#F0FDF4;color:#16A34A}
+.s-pending{background:#FFFBEB;color:#D97706}
+.s-cancelled{background:#FEF2F2;color:#DC2626}
+
+/* BOTTOM ROW */
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* QUICK ACTIONS */
+.qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qa-btn{background:#F8FAFB;border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all .2s;font-family:inherit}
+.qa-btn:hover{border-color:var(--teal);background:var(--teal-lt)}
+.qa-icon{font-size:20px;margin-bottom:6px}
+.qa-label{font-size:12px;font-weight:800;color:var(--text)}
+/* ACTIVITY */
+.activity-list{display:flex;flex-direction:column;gap:10px}
+.activity-item{display:flex;align-items:flex-start;gap:10px}
+.act-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.act-text{font-size:13px;font-weight:600}
+.act-text span{font-weight:800}
+.act-time{font-size:11px;color:var(--muted);margin-top:1px}
+</style>
+
+<div class="sidebar">
+  <div class="sb-logo">Kine<span>Mov</span></div>
+  <div class="sb-section">Principal</div>
+  <div class="sb-item active"><span class="icon">📊</span>Dashboard</div>
+  <div class="sb-item"><span class="icon">📅</span>Turnos</div>
+  <div class="sb-item"><span class="icon">👥</span>Pacientes</div>
+  <div class="sb-section">Gestión</div>
+  <div class="sb-item"><span class="icon">🩺</span>Kinesiólogos</div>
+  <div class="sb-item"><span class="icon">💰</span>Honorarios</div>
+  <div class="sb-item"><span class="icon">🏋️</span>Catálogo ejercicios</div>
+  <div class="sb-item"><span class="icon">📋</span>Reportes</div>
+  <div class="sb-section">Sistema</div>
+  <div class="sb-item"><span class="icon">🔐</span>Log de actividades</div>
+  <div class="sb-item"><span class="icon">⚙️</span>Configuración</div>
+  <div class="sb-bottom">
+    <div class="sb-user">
+      <div class="sb-avatar">AD</div>
+      <div class="sb-user-info"><div class="name">Admin</div><div class="role">Administrador</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2>Dashboard</h2>
+    <div class="topbar-right">
+      <div class="date-chip">Sáb 21 de Marzo, 2026</div>
+      <div class="notif">🔔<div class="notif-dot"></div></div>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon" style="background:#CCFBF1">📅</div>
+          <span class="sc-badge up">↑ 8%</span>
+        </div>
+        <div class="sc-val">148</div>
+        <div class="sc-lbl">Turnos este mes</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon" style="background:#FFF7ED">💰</div>
+          <span class="sc-badge up">↑ 12%</span>
+        </div>
+        <div class="sc-val">$667K</div>
+        <div class="sc-lbl">Ingresos del mes</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon" style="background:#EFF6FF">👥</div>
+          <span class="sc-badge up">↑ 5%</span>
+        </div>
+        <div class="sc-val">34</div>
+        <div class="sc-lbl">Pacientes nuevos</div>
+      </div>
+      <div class="stat-card">
+        <div class="sc-top">
+          <div class="sc-icon" style="background:#F0FDF4">✅</div>
+          <span class="sc-badge down">↓ 2%</span>
+        </div>
+        <div class="sc-val">91%</div>
+        <div class="sc-lbl">Tasa asistencia</div>
+      </div>
+    </div>
+
+    <!-- MIDDLE ROW -->
+    <div class="mid-row">
+      <div class="card">
+        <div class="card-header">
+          <h3>Ingresos mensuales</h3>
+          <span class="more">Ver reporte completo →</span>
+        </div>
+        <div class="bar-chart" id="bar-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Turnos de hoy</h3>
+          <span class="more" style="background:var(--teal-lt);color:var(--teal);padding:3px 8px;border-radius:99px;font-size:11px">14 total</span>
+        </div>
+        <table class="today-table">
+          <thead><tr><th>Paciente</th><th>Hora</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td><b>Laura Gómez</b></td><td>09:00</td><td><span class="status-pill s-confirmed">Confirmado</span></td></tr>
+            <tr><td><b>Carlos Paz</b></td><td>10:00</td><td><span class="status-pill s-confirmed">Confirmado</span></td></tr>
+            <tr><td><b>Ana Martínez</b></td><td>11:00</td><td><span class="status-pill s-pending">Pendiente</span></td></tr>
+            <tr><td><b>Jorge Ríos</b></td><td>14:00</td><td><span class="status-pill s-cancelled">Cancelado</span></td></tr>
+            <tr><td><b>Claudia T.</b></td><td>16:00</td><td><span class="status-pill s-confirmed">Confirmado</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="bottom-row">
+      <div class="card">
+        <div class="card-header"><h3>Acciones rápidas</h3></div>
+        <div class="qa-grid">
+          <button class="qa-btn" onclick="sendPrompt('¿Cómo funciona la gestión de kinesiólogos en el sistema?')"><div class="qa-icon">🩺</div><div class="qa-label">Nuevo kinesiólogo</div></button>
+          <button class="qa-btn" onclick="sendPrompt('¿Cómo se gestiona el catálogo de ejercicios en el sistema?')"><div class="qa-icon">🏋️</div><div class="qa-label">Agregar ejercicio</div></button>
+          <button class="qa-btn" onclick="sendPrompt('¿Cómo funciona el módulo de reportes de honorarios?')"><div class="qa-icon">📋</div><div class="qa-label">Generar reporte</div></button>
+          <button class="qa-btn"><div class="qa-icon">🔐</div><div class="qa-label">Ver log auditoría</div></button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Actividad reciente</h3><span class="more">Ver todo</span></div>
+        <div class="activity-list">
+          <div class="activity-item"><div class="act-dot" style="background:var(--teal)"></div><div><div class="act-text"><span>Laura Gómez</span> confirmó turno vía WhatsApp</div><div class="act-time">Hace 12 min</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:var(--coral)"></div><div><div class="act-text"><span>Jorge Ríos</span> canceló turno de 14:00</div><div class="act-time">Hace 40 min</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:#3B82F6"></div><div><div class="act-text"><span>Lic. María Acosta</span> envió indicaciones a Carlos P.</div><div class="act-time">Hace 1h</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:#16A34A"></div><div><div class="act-text">Pago de <span>$4.500</span> recibido — Mercado Pago</div><div class="act-time">Hace 2h</div></div></div>
+          <div class="activity-item"><div class="act-dot" style="background:#8B5CF6"></div><div><div class="act-text"><span>Ana Martínez</span> reservó turno para el martes</div><div class="act-time">Hace 3h</div></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const data=[420,510,380,620,590,480,667];
+const labels=['Sep','Oct','Nov','Dic','Ene','Feb','Mar'];
+const bc=document.getElementById('bar-chart');
+bc.innerHTML='';
+const max=Math.max(...data)*1.15;
+data.forEach((v,i)=>{
+  const grp=document.createElement('div');
+  grp.className='bar-group';
+  const pct=Math.round((v/max)*100);
+  const isLast=i===data.length-1;
+  grp.innerHTML=`<div class="bar" style="height:${pct}%;background:${isLast?'var(--teal)':'#E2E8F0'};min-height:4px"><div class="bar-val"${isLast?' style="color:var(--teal)"':''}>$${v}K</div></div><div class="bar-lbl">${labels[i]}</div>`;
+  bc.appendChild(grp);
+});
+</script>

@@ -1,0 +1,245 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --teal:#0D9488;--teal-lt:#CCFBF1;
+  --coral:#F97316;--coral-lt:#FFF7ED;
+  --blue:#3B82F6;--blue-lt:#EFF6FF;
+  --green:#16A34A;--green-lt:#F0FDF4;
+  --bg:#F1F5F9;--surface:#fff;
+  --text:#0F172A;--muted:#64748B;--border:#E2E8F0;
+  font-family:'Nunito',sans-serif;
+}
+
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:0 20px;height:54px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:17px;font-weight:900;color:var(--teal)}
+.user-chip{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.avatar-sm{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0D9488,#14B8A6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:800;flex-shrink:0}
+
+.toolbar{background:#fff;border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tb-btn{background:none;border:1px solid var(--border);padding:6px 12px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:700;color:var(--muted);font-family:inherit;transition:all .2s}
+.tb-btn:hover{border-color:var(--teal);color:var(--teal)}
+.tb-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.tb-label{font-size:15px;font-weight:800;color:var(--text);margin:0 6px}
+.tb-right{margin-left:auto;display:flex;gap:8px}
+.btn-new{background:var(--teal);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+
+.layout{display:flex;gap:0;background:var(--bg)}
+
+/* SIDEBAR */
+.sidebar{width:200px;background:#fff;border-right:1px solid var(--border);padding:14px;flex-shrink:0}
+.sb-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px}
+.sb-item{border-left:3px solid var(--teal);padding:8px 10px;background:var(--teal-lt);border-radius:0 8px 8px 0;cursor:pointer;margin-bottom:7px;transition:opacity .2s}
+.sb-item:hover{opacity:.8}
+.sb-item.coral{border-left-color:var(--coral);background:var(--coral-lt)}
+.sb-item.blue{border-left-color:var(--blue);background:var(--blue-lt)}
+.sb-time{font-size:11px;font-weight:800;color:var(--teal)}
+.sb-item.coral .sb-time{color:var(--coral)}
+.sb-item.blue .sb-time{color:var(--blue)}
+.sb-name{font-size:13px;font-weight:700;color:var(--text)}
+.sb-treat{font-size:11px;color:var(--muted)}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.stat-box{background:#F8FAFB;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid var(--border)}
+.stat-val{font-size:22px;font-weight:900;color:var(--teal)}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:700}
+
+/* CALENDAR */
+.cal{flex:1;overflow:auto}
+.cal-head{display:grid;grid-template-columns:50px repeat(5,1fr);background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+.cal-head-cell{padding:10px 8px;text-align:center;border-right:1px solid var(--border)}
+.cal-head-cell .dn{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.cal-head-cell .dd{font-size:20px;font-weight:900;color:var(--text);line-height:1.2}
+.cal-head-cell.today .dd{color:var(--teal)}
+.cal-head-cell.today{border-bottom:2px solid var(--teal)}
+
+.cal-body{display:grid;grid-template-columns:50px repeat(5,1fr)}
+.time-col-cell{background:#fff;border-right:1px solid var(--border);border-bottom:1px solid var(--border);height:60px;display:flex;align-items:flex-start;justify-content:center;padding-top:4px;font-size:10px;font-weight:700;color:var(--muted)}
+.day-col{border-right:1px solid var(--border);position:relative}
+.hour-cell{height:60px;border-bottom:1px solid #F1F5F9;background:#fff}
+.hour-cell.today-bg{background:#FAFFFE}
+
+.appt{position:absolute;left:3px;right:3px;border-radius:7px;padding:4px 7px;cursor:pointer;overflow:hidden;transition:filter .2s}
+.appt:hover{filter:brightness(.93)}
+.appt.teal{background:var(--teal-lt);border-left:3px solid var(--teal)}
+.appt.coral{background:var(--coral-lt);border-left:3px solid var(--coral)}
+.appt.blue{background:var(--blue-lt);border-left:3px solid var(--blue)}
+.appt.green{background:var(--green-lt);border-left:3px solid var(--green)}
+.appt.blocked{background:#F8F8F8;border-left:3px solid #CBD5E1;opacity:.75}
+.appt-t{font-size:10px;font-weight:800;color:var(--muted)}
+.appt-n{font-size:12px;font-weight:800;color:var(--text);line-height:1.2}
+.appt-s{font-size:10px;color:var(--muted)}
+
+.now-line{position:absolute;left:0;right:0;z-index:9}
+.now-dot{width:8px;height:8px;background:var(--teal);border-radius:50%;position:absolute;left:-1px;top:-4px}
+.now-hr{position:absolute;left:6px;right:0;top:0;height:2px;background:var(--teal)}
+
+/* DETAIL PANEL */
+.detail{width:250px;background:#fff;border-left:1px solid var(--border);padding:18px;flex-shrink:0}
+.detail-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.detail-top h4{font-size:14px;font-weight:800}
+.close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted);line-height:1;padding:0}
+.dp-avatar{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#0D9488,#14B8A6);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800}
+.dp-name{font-size:16px;font-weight:800;margin-top:10px}
+.dp-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.dp-divider{height:1px;background:var(--border);margin:12px 0}
+.dp-row{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px}
+.dp-icon{width:28px;height:28px;background:#F1F5F9;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.dp-lbl{font-size:11px;color:var(--muted);font-weight:700}
+.dp-val{font-size:13px;font-weight:700;color:var(--text)}
+.dp-btn{width:100%;padding:9px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;border:none;transition:all .2s;margin-bottom:7px}
+.dp-btn.primary{background:var(--teal);color:#fff}
+.dp-btn.secondary{background:#F8FAFB;color:var(--text);border:1px solid var(--border)}
+.dp-btn.danger{background:#FEF2F2;color:#DC2626;border:1px solid #FECACA}
+</style>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">KineMov</div>
+    <span style="font-size:12px;color:var(--muted);font-weight:700">/ Agenda</span>
+  </div>
+  <div class="user-chip">
+    <div class="avatar-sm">MA</div>
+    Lic. María Acosta
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <button class="tb-btn">‹</button>
+  <button class="tb-btn active">Hoy</button>
+  <button class="tb-btn">›</button>
+  <span class="tb-label">22 – 26 de Marzo, 2026</span>
+  <div class="tb-right">
+    <button class="tb-btn">Día</button>
+    <button class="tb-btn active">Semana</button>
+    <button class="tb-btn">Mes</button>
+    <button class="btn-new" onclick="document.getElementById('detail').style.display='flex'">+ Nuevo turno</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-title">Hoy — Mié 25/03</div>
+    <div class="sb-item" onclick="showDetail()">
+      <div class="sb-time">09:00</div>
+      <div class="sb-name">Laura Gómez</div>
+      <div class="sb-treat">Rehabilitación</div>
+    </div>
+    <div class="sb-item coral" onclick="showDetail()">
+      <div class="sb-time">10:30</div>
+      <div class="sb-name">Carlos Paz</div>
+      <div class="sb-treat">Post-operatorio</div>
+    </div>
+    <div class="sb-item blue" onclick="showDetail()">
+      <div class="sb-time">12:00</div>
+      <div class="sb-name">Ana Martínez</div>
+      <div class="sb-treat">Electroterapia</div>
+    </div>
+    <div class="divider"></div>
+    <div class="sb-title">Esta semana</div>
+    <div class="stat-box"><div class="stat-val">14</div><div class="stat-lbl">Turnos confirmados</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--coral)">2</div><div class="stat-lbl">Cancelaciones</div></div>
+  </div>
+
+  <!-- CALENDAR GRID -->
+  <div class="cal" id="cal">
+    <div class="cal-head">
+      <div class="cal-head-cell" style="border-right:1px solid var(--border)"></div>
+      <div class="cal-head-cell"><div class="dn">Lun</div><div class="dd">23</div></div>
+      <div class="cal-head-cell"><div class="dn">Mar</div><div class="dd">24</div></div>
+      <div class="cal-head-cell today"><div class="dn">Mié</div><div class="dd">25</div></div>
+      <div class="cal-head-cell"><div class="dn">Jue</div><div class="dd">26</div></div>
+      <div class="cal-head-cell"><div class="dn">Vie</div><div class="dd">27</div></div>
+    </div>
+    <div class="cal-body" id="cal-body"></div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail" id="detail" style="display:none">
+    <div class="detail-top">
+      <h4>Detalle del turno</h4>
+      <button class="close-btn" onclick="document.getElementById('detail').style.display='none'">×</button>
+    </div>
+    <div class="dp-avatar">CG</div>
+    <div class="dp-name">Carlos Gómez</div>
+    <div class="dp-sub">DNI 28.345.678 · OSDE</div>
+    <div class="dp-divider"></div>
+    <div class="dp-row"><div class="dp-icon">🤸</div><div><div class="dp-lbl">Tratamiento</div><div class="dp-val">Rehabilitación física</div></div></div>
+    <div class="dp-row"><div class="dp-icon">📅</div><div><div class="dp-lbl">Fecha y hora</div><div class="dp-val">Mié 25/03 — 09:00 hs</div></div></div>
+    <div class="dp-row"><div class="dp-icon">💳</div><div><div class="dp-lbl">Pago</div><div class="dp-val" style="color:var(--green)">✓ Pagado — MP</div></div></div>
+    <div class="dp-row"><div class="dp-icon">📋</div><div><div class="dp-lbl">Autorización OS</div><div class="dp-val" style="color:var(--coral)">⏳ Pendiente FHIR</div></div></div>
+    <div class="dp-divider"></div>
+    <button class="dp-btn primary">Registrar evolución</button>
+    <button class="dp-btn secondary">Enviar indicaciones</button>
+    <button class="dp-btn danger">Cancelar turno</button>
+  </div>
+
+</div>
+
+<script>
+const hours = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
+const appointments = {
+  0: [ // Lun
+    {top:4,h:52,cls:'teal',t:'08:00',n:'Laura G.',s:'Rehabilitación'},
+    {top:124,h:52,cls:'coral',t:'10:00',n:'Carlos P.',s:'Post-op'},
+    {top:244,h:52,cls:'green',t:'12:00',n:'Marcos V.',s:'Electroterapia'},
+    {top:364,h:52,cls:'teal',t:'14:00',n:'Sofía B.',s:'Pilates'},
+  ],
+  1: [ // Mar
+    {top:64,h:52,cls:'blue',t:'09:00',n:'Ana M.',s:'Evaluación'},
+    {top:184,h:52,cls:'coral',t:'11:00',n:'Pedro L.',s:'Post-op rodilla'},
+    {top:420,h:112,cls:'blocked',t:'15:00–17:00',n:'Bloqueo',s:'Capacitación'},
+  ],
+  2: [ // Mié (hoy)
+    {top:4,h:52,cls:'teal',t:'08:00',n:'Julia R.',s:'Rehabilitación'},
+    {top:64,h:52,cls:'coral',t:'09:00',n:'Carla M.',s:'Post-op hombro'},
+    {top:184,h:52,cls:'blue',t:'11:00',n:'Tomás F.',s:'Deporte'},
+    {top:304,h:52,cls:'green',t:'13:00',n:'Natalia S.',s:'Pilates'},
+  ],
+  3: [ // Jue
+    {top:124,h:52,cls:'teal',t:'10:00',n:'Diego H.',s:'Rehabilitación'},
+    {top:244,h:52,cls:'blue',t:'12:00',n:'Elena V.',s:'Evaluación'},
+    {top:364,h:52,cls:'coral',t:'14:00',n:'Rubén C.',s:'Post-op'},
+  ],
+  4: [ // Vie
+    {top:4,h:52,cls:'green',t:'08:00',n:'Inés P.',s:'Pilates'},
+    {top:184,h:52,cls:'teal',t:'11:00',n:'Luis M.',s:'Rehabilitación'},
+    {top:480,h:60,cls:'blocked',t:'16:00',n:'Bloqueo',s:''},
+  ],
+};
+
+const calBody = document.getElementById('cal-body');
+let html = '';
+
+// Time labels column
+const timeHtml = hours.map(h => `<div class="time-col-cell">${h}</div>`).join('');
+html += `<div style="background:#fff;border-right:1px solid var(--border)">${timeHtml}</div>`;
+
+// Day columns
+for (let d = 0; d < 5; d++) {
+  const isToday = d === 2;
+  let cells = hours.map(h => `<div class="hour-cell${isToday?' today-bg':''}"></div>`).join('');
+  let appts = (appointments[d]||[]).map(a =>
+    `<div class="appt ${a.cls}" style="top:${a.top}px;height:${a.h}px" onclick="showDetail()">
+      <div class="appt-t">${a.t}</div>
+      <div class="appt-n">${a.n}</div>
+      <div class="appt-s">${a.s}</div>
+    </div>`
+  ).join('');
+  // Current time line on today
+  const nowLine = isToday ? `<div class="now-line" style="top:272px"><div class="now-dot"></div><div class="now-hr"></div></div>` : '';
+  html += `<div class="day-col">${cells}${appts}${nowLine}</div>`;
+}
+
+calBody.innerHTML = html;
+
+function showDetail() {
+  document.getElementById('detail').style.display = 'flex';
+  document.getElementById('detail').style.flexDirection = 'column';
+}
+</script>
