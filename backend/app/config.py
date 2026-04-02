@@ -3,8 +3,11 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    # Database
-    database_url: str = "postgresql+asyncpg://kinemov:secret123@localhost:5432/kinemov"
+    # Database - fallback to SQLite for development if PostgreSQL not available
+    database_url: str = "sqlite+aiosqlite:///./kinemov.db"
+
+    # Try PostgreSQL first, fallback to SQLite
+    postgres_url: Optional[str] = None
 
     # JWT
     jwt_secret: str = "your_super_secret_jwt_key_here_change_in_production"
@@ -28,6 +31,13 @@ class Settings(BaseSettings):
 
     # Environment
     environment: str = "development"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Try to use PostgreSQL if available, otherwise fallback to SQLite
+        if self.postgres_url:
+            self.database_url = self.postgres_url
+        # Keep SQLite as fallback
 
     class Config:
         env_file = ".env"

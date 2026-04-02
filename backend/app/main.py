@@ -44,10 +44,12 @@ async def startup_event():
     logger.info(f"Environment: {settings.environment}")
     logger.info(f"Database URL: {settings.database_url.replace(settings.database_url.split('@')[0], '***')}")
 
+    from sqlalchemy import text
+
     # Test database connection
     try:
         async with engine.begin() as conn:
-            await conn.execute("SELECT 1")
+            await conn.execute(text("SELECT 1"))
         logger.info("Database connection successful")
     except Exception as e:
         logger.error(f"Database connection failed: {e}")
