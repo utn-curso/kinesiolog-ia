@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+.venv/
+.venv*/
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+build/
+.env
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# OS
+Thumbs.db
+*.log
+
+# Database
+*.db
+*.sqlite
+
+# Docker
+docker/volumes/
+
+# Temporary files
+*.tmp
+*.swp
