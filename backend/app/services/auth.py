@@ -56,14 +56,21 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
 
 async def create_user(db: AsyncSession, user: UserCreate) -> User:
     """Create new user"""
+    print("In create_user")
     hashed_password = get_password_hash(user.password)
+    print(f"Hashed password: {hashed_password}")
     db_user = User(
         email=user.email,
         hashed_password=hashed_password,
         full_name=user.full_name,
         phone=user.phone,
+        role=getattr(user, 'role', 'patient') or 'patient',
     )
+    print(f"Created db_user: {db_user}")
     db.add(db_user)
+    print("Added to db")
     await db.commit()
+    print("Committed")
     await db.refresh(db_user)
+    print(f"Refreshed: {db_user}")
     return db_user

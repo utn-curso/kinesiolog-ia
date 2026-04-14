@@ -13,6 +13,13 @@ export default function Login() {
   const { login, isLoading } = useAuthStore()
   const navigate = useNavigate()
 
+  const formatError = (error: any) => {
+    const detail = error?.response?.data?.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) return detail.map((item) => item.msg || JSON.stringify(item)).join('. ')
+    return error?.message || 'Error al iniciar sesión'
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -21,7 +28,7 @@ export default function Login() {
       await login(email, password)
       navigate('/dashboard')
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al iniciar sesión')
+      setError(formatError(err))
     }
   }
 

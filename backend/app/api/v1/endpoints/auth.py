@@ -38,20 +38,33 @@ async def register(
     db: AsyncSession = Depends(get_db)
 ):
     """Register new user"""
-    # Check if user already exists
-    from app.services.auth import get_user_by_email
-    existing_user = await get_user_by_email(db, user_data.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
+    try:
+        print("Starting register")
+        # Check if user already exists
+        from app.services.auth import get_user_by_email
+        print("Checking existing user")
+        existing_user = await get_user_by_email(db, user_data.email)
+        print(f"Existing user: {existing_user}")
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
 
-    # Create user
-    user = await create_user(db, user_data)
+        # Create user
+        print("Creating user")
+        user = await create_user(db, user_data)
+        print(f"User created: {user}")
 
-    # Send welcome email (async, don't wait)
-    import asyncio
-    asyncio.create_task(send_welcome_email(user.email, user.full_name))
+        # Send welcome email (async, don't wait)
+        # import asyncio
+        # print("Sending email")
+        # asyncio.create_task(send_welcome_email(user.email, user.full_name))
 
-    return user
+        print("Returning user")
+        return user
+    except Exception as e:
+        print(f"Error in register: {e}")
+        import traceback
+        traceback.print_exc()
+        raise

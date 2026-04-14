@@ -11,17 +11,25 @@ export default function Register() {
     email: '',
     password: '',
     full_name: '',
-    phone: ''
+    phone: '',
+    role: 'patient',
   })
   const [error, setError] = useState('')
   const { register, isLoading } = useAuthStore()
   const navigate = useNavigate()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value
     }))
+  }
+
+  const formatError = (error: any) => {
+    const detail = error?.response?.data?.detail
+    if (typeof detail === 'string') return detail
+    if (Array.isArray(detail)) return detail.map((item) => item.msg || JSON.stringify(item)).join('. ')
+    return error?.message || 'Error al registrarse'
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,7 +40,7 @@ export default function Register() {
       await register(formData)
       navigate('/login')
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Error al registrarse')
+      setError(formatError(err))
     }
   }
 
@@ -71,6 +79,21 @@ export default function Register() {
                 onChange={handleChange}
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Rol
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="input-field"
+              >
+                <option value="patient">Paciente</option>
+                <option value="kinesiologo">Kinesiólogo</option>
+              </select>
             </div>
 
             <div>

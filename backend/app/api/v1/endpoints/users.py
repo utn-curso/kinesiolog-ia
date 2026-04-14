@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.database import get_db
 from app.middlewares.auth import get_current_active_user
-from app.models.user import User
+from app.models.user import User, Kinesiologo
 from app.schemas.user import User as UserSchema, UserUpdate
 
 router = APIRouter()
@@ -51,3 +51,16 @@ async def read_users(
     )
     users = result.scalars().all()
     return users
+
+
+@router.get("/kinesiologos", response_model=list[UserSchema])
+async def read_kinesiologos(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get list of kinesiologos"""
+    result = await db.execute(
+        select(User).where(User.role == "kinesiologo")
+    )
+    kinesiologos = result.scalars().all()
+    return kinesiologos

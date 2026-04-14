@@ -34,3 +34,27 @@ api.interceptors.response.use(
 )
 
 export default api
+
+// User API functions
+export const userApi = {
+  getKinesiologos: () => api.get('/users/kinesiologos'),
+}
+export const appointmentApi = {
+  getAppointments: (params?: { skip?: number; limit?: number; status?: string }) =>
+    api.get('/appointments/', { params }),
+
+  getAppointment: (id: number) =>
+    api.get(`/appointments/${id}`),
+
+  createAppointment: (data: { kinesiologo_id: number; date: string; duration_minutes?: number; notes?: string }) =>
+    api.post('/appointments/', data),
+
+  updateAppointment: (id: number, data: { date?: string; duration_minutes?: number; status?: string; notes?: string }) =>
+    api.put(`/appointments/${id}`, data),
+
+  deleteAppointment: (id: number) =>
+    api.delete(`/appointments/${id}`),
+
+  getAvailableSlots: (kinesiologoId: number, date: string) =>
+    api.get(`/appointments/available-slots/${kinesiologoId}?date=${date}`),
+}

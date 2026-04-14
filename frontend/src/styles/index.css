@@ -6,10 +6,10 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply box-border;
   }
   body {
-    @apply bg-background text-foreground font-nunito;
+    @apply bg-white text-gray-900 font-nunito;
   }
 }
 

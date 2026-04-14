@@ -16,8 +16,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
     role = Column(String(50), default="patient")  # patient, kinesiologo, admin
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
 
     # Relationships
     kinesiologo_profile = relationship("Kinesiologo", back_populates="user", uselist=False)
@@ -40,4 +40,4 @@ class Kinesiologo(Base):
     user = relationship("User", back_populates="kinesiologo_profile")
     services = relationship("Service", back_populates="kinesiologo")
     time_slots = relationship("TimeSlot", back_populates="kinesiologo")
-    appointments = relationship("Appointment", back_populates="kinesiologo")
+    appointments_as_kinesiologo = relationship("Appointment", back_populates="kinesiologo")

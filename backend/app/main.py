@@ -5,7 +5,7 @@ import logging
 import uvicorn
 
 from app.config import settings
-from app.database import engine
+from app.database import engine, Base
 from app.api import api_router
 
 # Configure logging
@@ -41,19 +41,15 @@ app.include_router(api_router, prefix="/api")
 async def startup_event():
     """Initialize database on startup"""
     logger.info("Starting KineMov API...")
-    logger.info(f"Environment: {settings.environment}")
-    logger.info(f"Database URL: {settings.database_url.replace(settings.database_url.split('@')[0], '***')}")
 
-    from sqlalchemy import text
+    # Create tables
+    from sqlalchemy import create_engine
+    from app.models import user, appointment
+    sync_engine = create_engine(settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", ""))
+    user.Base.metadata.create_all(bind=sync_engine)
+    sync_engine.dispose()
 
-    # Test database connection
-    try:
-        async with engine.begin() as conn:
-            await conn.execute(text("SELECT 1"))
-        logger.info("Database connection successful")
-    except Exception as e:
-        logger.error(f"Database connection failed: {e}")
-        raise
+    logger.info("Database tables created/verified")
 
 
 @app.on_event("shutdown")
