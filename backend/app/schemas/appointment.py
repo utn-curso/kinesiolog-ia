@@ -40,6 +40,16 @@ class Appointment(AppointmentBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
 
-    # Include related data
-    patient: Optional[User] = None
-    kinesiologo: Optional[Kinesiologo] = None
+
+class AppointmentOut(AppointmentBase):
+    """Response model for appointments without nested relations to avoid
+    lazy-loading issues during serialization.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    patient_id: int
+    kinesiologo_id: int
+    status: AppointmentStatus
+    created_at: datetime
+    updated_at: Optional[datetime] = None

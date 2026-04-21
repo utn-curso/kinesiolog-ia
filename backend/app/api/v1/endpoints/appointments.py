@@ -1,28 +1,29 @@
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.appointment import AppointmentStatus
-from app.schemas.appointment import Appointment, AppointmentCreate, AppointmentUpdate
+from app.schemas.appointment import AppointmentOut, AppointmentCreate, AppointmentUpdate
 from app.services.appointment import AppointmentService
 from app.middlewares.auth import get_current_user
 from app.models.user import User
+from app.models.appointment import Appointment as AppointmentModel
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Appointment])
+@router.get("/", response_model=List[AppointmentOut])
 async def get_appointments(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
     status: Optional[AppointmentStatus] = None
 ):
     service = AppointmentService(db)
-    return await service.get_appointments(
+    appointments = await service.get_appointments(
         user_id=current_user.id,
         user_role=current_user.role,
         skip=skip,
@@ -30,24 +31,50 @@ async def get_appointments(
         status=status
     )
 
+    def to_dict(a: AppointmentModel):
+        return {
+            "id": a.id,
+            "patient_id": a.patient_id,
+            "kinesiologo_id": a.kinesiologo_id,
+            "date": a.date,
+            "duration_minutes": a.duration_minutes,
+            "notes": a.notes,
+            "status": a.status,
+            "created_at": a.created_at,
+            "updated_at": a.updated_at,
+        }
 
-@router.get("/{appointment_id}", response_model=Appointment)
+    return [to_dict(a) for a in appointments]
+
+
+@router.get("/{appointment_id}", response_model=AppointmentOut)
 async def get_appointment(
     appointment_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     service = AppointmentService(db)
     appointment = await service.get_appointment(appointment_id, current_user.id, current_user.role)
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
-    return appointment
+
+    return {
+        "id": appointment.id,
+        "patient_id": appointment.patient_id,
+        "kinesiologo_id": appointment.kinesiologo_id,
+        "date": appointment.date,
+        "duration_minutes": appointment.duration_minutes,
+        "notes": appointment.notes,
+        "status": appointment.status,
+        "created_at": appointment.created_at,
+        "updated_at": appointment.updated_at,
+    }
 
 
-@router.post("/", response_model=Appointment)
+@router.post("/", response_model=AppointmentOut)
 async def create_appointment(
     appointment_data: AppointmentCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     if current_user.role not in ["patient", "admin"]:
@@ -55,29 +82,51 @@ async def create_appointment(
 
     service = AppointmentService(db)
     try:
-        return await service.create_appointment(appointment_data, current_user.id)
+        appointment = await service.create_appointment(appointment_data, current_user.id)
+        return {
+            "id": appointment.id,
+            "patient_id": appointment.patient_id,
+            "kinesiologo_id": appointment.kinesiologo_id,
+            "date": appointment.date,
+            "duration_minutes": appointment.duration_minutes,
+            "notes": appointment.notes,
+            "status": appointment.status,
+            "created_at": appointment.created_at,
+            "updated_at": appointment.updated_at,
+        }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.put("/{appointment_id}", response_model=Appointment)
+@router.put("/{appointment_id}", response_model=AppointmentOut)
 async def update_appointment(
     appointment_id: int,
     update_data: AppointmentUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     service = AppointmentService(db)
     appointment = await service.update_appointment(appointment_id, update_data, current_user.id, current_user.role)
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found or access denied")
-    return appointment
+
+    return {
+        "id": appointment.id,
+        "patient_id": appointment.patient_id,
+        "kinesiologo_id": appointment.kinesiologo_id,
+        "date": appointment.date,
+        "duration_minutes": appointment.duration_minutes,
+        "notes": appointment.notes,
+        "status": appointment.status,
+        "created_at": appointment.created_at,
+        "updated_at": appointment.updated_at,
+    }
 
 
 @router.delete("/{appointment_id}")
 async def delete_appointment(
     appointment_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     service = AppointmentService(db)
@@ -91,7 +140,7 @@ async def delete_appointment(
 async def get_available_slots(
     kinesiologo_id: int,
     date: str,  # YYYY-MM-DD
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     try:
