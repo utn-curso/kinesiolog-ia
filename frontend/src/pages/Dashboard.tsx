@@ -1,138 +1,217 @@
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../context/auth'
-import { Layout } from '../components/Layout'
-import { Card } from '../components/Card'
+import { useEffect, useState } from 'react'
+import { AdminLayout } from '../components/AdminLayout'
+import { appointmentApi } from '../services/api'
+
+interface Appointment {
+  id: number;
+  date: string;
+  duration_minutes: number;
+  status: string;
+  notes?: string;
+  patient?: { full_name: string };
+  kinesiologo?: { user?: { full_name: string } };
+}
 
 export default function Dashboard() {
-  const { user, checkAuth } = useAuthStore()
-  const navigate = useNavigate()
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!user) {
-      checkAuth()
+    const fetchAppointments = async () => {
+      try {
+        const { data } = await appointmentApi.getAppointments()
+        setAppointments(data)
+      } catch (error) {
+        console.error('Error fetching dashboard appointments:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [user, checkAuth])
+    fetchAppointments()
+  }, [])
 
-  if (!user) {
-    return (
-      <Layout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando...</p>
-          </div>
-        </div>
-      </Layout>
-    )
-  }
+  const chartData = [420, 510, 380, 620, 590, 480, 667];
+  const chartLabels = ['Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar'];
+  const maxVal = Math.max(...chartData) * 1.15;
 
   return (
-    <Layout>
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-gray-900 mb-2">
-            ¡Hola, {user.full_name}!
-          </h1>
-          <p className="text-gray-600">
-            Bienvenido a tu panel de control
-          </p>
+    <AdminLayout pageTitle="Dashboard">
+      <div className="flex flex-col gap-5 max-w-[1200px] mx-auto">
+        {/* STATS ROW */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
+            <div className="flex justify-between items-start mb-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-teal-50">📅</div>
+              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 8%</span>
+            </div>
+            <div className="text-3xl font-black leading-none text-slate-800">{appointments.length || '148'}</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Turnos registrados</div>
+          </div>
+          <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
+            <div className="flex justify-between items-start mb-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-orange-50">💰</div>
+              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 12%</span>
+            </div>
+            <div className="text-3xl font-black leading-none text-slate-800">$667K</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Ingresos del mes</div>
+          </div>
+          <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
+            <div className="flex justify-between items-start mb-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-blue-50">👥</div>
+              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 5%</span>
+            </div>
+            <div className="text-3xl font-black leading-none text-slate-800">34</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Pacientes nuevos</div>
+          </div>
+          <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
+            <div className="flex justify-between items-start mb-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-green-50">✅</div>
+              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-red-50 text-red-600">↓ 2%</span>
+            </div>
+            <div className="text-3xl font-black leading-none text-slate-800">91%</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Tasa asistencia</div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-teal-50 rounded-lg flex items-center justify-center">
-                <span className="text-xl">📅</span>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-teal-500">3</div>
-                <div className="text-sm text-gray-600">Turnos Hoy</div>
-              </div>
+        {/* MIDDLE ROW */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[15px] font-extrabold text-slate-800">Ingresos mensuales</h3>
+              <span className="text-xs text-teal-600 font-bold cursor-pointer">Ver reporte completo →</span>
             </div>
-          </Card>
+            <div className="flex items-end gap-2 h-[120px] pb-6 relative border-b border-slate-200">
+              {chartData.map((val, idx) => {
+                const isLast = idx === chartData.length - 1;
+                const heightPct = Math.round((val / maxVal) * 100);
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1 group">
+                    <div 
+                      className={`w-full rounded-t-md relative transition-all duration-300 group-hover:brightness-95`}
+                      style={{ height: `${heightPct}%`, minHeight: '4px', backgroundColor: isLast ? '#0D9488' : '#cbd5e1' }}
+                    >
+                      <div className={`absolute -top-3.5 w-full text-center text-[9px] font-extrabold ${isLast ? 'text-teal-600' : 'text-slate-400'}`}>
+                        ${val}K
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-bold mt-1">{chartLabels[idx]}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
 
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                <span className="text-xl">⏰</span>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-blue-500">12</div>
-                <div className="text-sm text-gray-600">Turnos Semana</div>
-              </div>
+          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 p-5 overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[15px] font-extrabold text-slate-800">Turnos Registrados</h3>
+              <span className="bg-teal-50 text-teal-600 px-2 py-1 rounded-full text-[11px] font-bold">
+                {appointments.length} total
+              </span>
             </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
-                <span className="text-xl">✅</span>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-green-500">8</div>
-                <div className="text-sm text-gray-600">Completados</div>
-              </div>
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide pb-2 border-b border-slate-200">Paciente</th>
+                    <th className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide pb-2 border-b border-slate-200">Fecha</th>
+                    <th className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wide pb-2 border-b border-slate-200">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={3} className="text-center py-4 text-sm text-slate-500">Cargando...</td></tr>
+                  ) : appointments.length === 0 ? (
+                    <tr><td colSpan={3} className="text-center py-6 text-sm text-slate-500">No hay turnos registrados</td></tr>
+                  ) : (
+                    appointments.slice(0, 5).map(app => (
+                      <tr key={app.id} className="hover:bg-slate-50 group border-b border-slate-50 last:border-0">
+                        <td className="py-2.5 text-[13px] font-bold text-slate-800">
+                          {app.patient?.full_name || 'Paciente ' + app.id}
+                        </td>
+                        <td className="py-2.5 text-[13px] text-slate-600">
+                          {new Date(app.date).toLocaleDateString('es-AR', {day: '2-digit', month: 'short', hour:'2-digit', minute:'2-digit'})}
+                        </td>
+                        <td className="py-2.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize ${
+                            app.status === 'confirmed' ? 'bg-green-50 text-green-600' :
+                            app.status === 'pending' ? 'bg-orange-50 text-orange-500' :
+                            'bg-red-50 text-red-600'
+                          }`}>
+                            {app.status === 'confirmed' ? 'Confirmado' : app.status === 'pending' ? 'Pendiente' : 'Cancelado'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-coral-50 rounded-lg flex items-center justify-center">
-                <span className="text-xl">💰</span>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-coral-500">$2,400</div>
-                <div className="text-sm text-gray-600">Ingresos Mes</div>
-              </div>
-            </div>
-          </Card>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Próximos Turnos</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <div className="font-semibold text-gray-900">María González</div>
-                  <div className="text-sm text-gray-600">Fisioterapia - 10:00 AM</div>
-                </div>
-                <div className="text-sm text-teal-600 font-semibold">Hoy</div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <div className="font-semibold text-gray-900">Carlos Rodríguez</div>
-                  <div className="text-sm text-gray-600">Masaje - 2:30 PM</div>
-                </div>
-                <div className="text-sm text-teal-600 font-semibold">Hoy</div>
-              </div>
-            </div>
-          </Card>
-
-          <Card>
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Acciones Rápidas</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => navigate('/booking')}
-                className="p-4 bg-teal-50 hover:bg-teal-100 rounded-lg text-center transition-colors"
-              >
-                <div className="text-2xl mb-2">📅</div>
-                <div className="text-sm font-semibold text-teal-700">Nuevo Turno</div>
+        {/* BOTTOM ROW */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h3 className="text-[15px] font-extrabold text-slate-800 mb-4">Acciones rápidas</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
+                <div className="text-xl mb-1">🩺</div>
+                <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Nuevo kinesiólogo</div>
               </button>
-
-              <button
-                onClick={() => navigate('/agenda')}
-                className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-center transition-colors"
-              >
-                <div className="text-2xl mb-2">📊</div>
-                <div className="text-sm font-semibold text-blue-700">Ver Agenda</div>
+              <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
+                <div className="text-xl mb-1">🏋️</div>
+                <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Agregar ejercicio</div>
+              </button>
+              <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
+                <div className="text-xl mb-1">📋</div>
+                <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Generar reporte</div>
+              </button>
+              <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
+                <div className="text-xl mb-1">🔐</div>
+                <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Ver log auditoría</div>
               </button>
             </div>
-          </Card>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-[15px] font-extrabold text-slate-800">Actividad reciente</h3>
+              <span className="text-xs text-slate-500 font-bold cursor-pointer hover:text-slate-800">Ver todo</span>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-teal-500 mt-1.5 shrink-0"></div>
+                <div>
+                  <div className="text-[13px] font-medium text-slate-800"><span className="font-extrabold">Laura Gómez</span> confirmó turno vía WhatsApp</div>
+                  <div className="text-[11px] text-slate-500">Hace 12 min</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5 shrink-0"></div>
+                <div>
+                  <div className="text-[13px] font-medium text-slate-800"><span className="font-extrabold">Jorge Ríos</span> canceló turno de 14:00</div>
+                  <div className="text-[11px] text-slate-500">Hace 40 min</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
+                <div>
+                  <div className="text-[13px] font-medium text-slate-800"><span className="font-extrabold">Lic. María Acosta</span> envió indicaciones a Carlos P.</div>
+                  <div className="text-[11px] text-slate-500">Hace 1h</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
+                <div>
+                  <div className="text-[13px] font-medium text-slate-800">Pago de <span className="font-extrabold">$4.500</span> recibido — Mercado Pago</div>
+                  <div className="text-[11px] text-slate-500">Hace 2h</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
       </div>
-    </Layout>
+    </AdminLayout>
   )
-}
+}
