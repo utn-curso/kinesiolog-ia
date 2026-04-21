@@ -1,11 +1,15 @@
+import asyncio
 from datetime import datetime, timedelta
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
+from sqlalchemy.orm import joinedload
 
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.user import User, Kinesiologo
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
+from app.utils.email import send_appointment_confirmation
+from app.utils.sms import send_appointment_cancellation
 
 
 class AppointmentService:
@@ -97,13 +101,22 @@ class AppointmentService:
         await self.db.commit()
         await self.db.refresh(appointment)
 
-        # Send confirmation email/SMS (async)
+        # Send confirmation email (async)
         patient_result = await self.db.execute(select(User).where(User.id == patient_id))
         patient = patient_result.scalar_one_or_none()
         if patient:
-            # Send email
-            # await send_appointment_confirmation(patient.email, appointment, kinesiologo.user)
-            pass  # For now, skip async
+            date_str = appointment.date.strftime("%d/%m/%Y")
+            time_str = appointment.date.strftime("%H:%M")
+            asyncio.create_task(
+                send_appointment_confirmation(
+                    email=patient.email,
+                    patient_name=patient.full_name,
+                    kinesiologo_name=kinesiologo.user.full_name if kinesiologo.user else "Kinesiólogo(a)",
+                    service="Sesión de Kinesiología",
+                    date=date_str,
+                    time=time_str
+                )
+            )
 
         return appointment
 
@@ -126,17 +139,25 @@ class AppointmentService:
         await self.db.refresh(appointment)
 
         # If cancelled, send notification
-        if update_data.status == AppointmentStatus.CANCELLED:
+        if getattr(appointment, 'status', None) == AppointmentStatus.CANCELLED.value or update_data.status == AppointmentStatus.CANCELLED:
             patient_result = await self.db.execute(select(User).where(User.id == appointment.patient_id))
             patient = patient_result.scalar_one_or_none()
             kinesiologo_result = await self.db.execute(
-                select(Kinesiologo).where(Kinesiologo.id == appointment.kinesiologo_id)
+                select(Kinesiologo).options(joinedload(Kinesiologo.user)).where(Kinesiologo.id == appointment.kinesiologo_id)
             )
             kinesiologo = kinesiologo_result.scalar_one_or_none()
-            if patient and kinesiologo:
-                # await send_appointment_cancellation(patient.email, appointment, kinesiologo.user)
-                # await send_sms_cancellation(patient.phone, appointment, kinesiologo.user)
-                pass
+            if patient and kinesiologo and patient.phone:
+                date_str = appointment.date.strftime("%d/%m/%Y")
+                time_str = appointment.date.strftime("%H:%M")
+                asyncio.create_task(
+                    send_appointment_cancellation(
+                        phone=patient.phone,
+                        patient_name=patient.full_name,
+                        kinesiologo_name=kinesiologo.user.full_name if kinesiologo.user else "Kinesiólogo(a)",
+                        date=date_str,
+                        time=time_str
+                    )
+                )
 
         return appointment
 
