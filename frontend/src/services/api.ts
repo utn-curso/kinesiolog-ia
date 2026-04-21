@@ -38,6 +38,7 @@ export default api
 // User API functions
 export const userApi = {
   getKinesiologos: () => api.get('/users/kinesiologos'),
+  getKinesiologosProfiles: () => api.get('/users/kinesiologos-profiles'),
 }
 export const appointmentApi = {
   getAppointments: (params?: { skip?: number; limit?: number; status?: string }) =>

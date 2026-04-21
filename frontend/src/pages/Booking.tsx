@@ -8,9 +8,11 @@ import { Input } from '../components/Input'
 import { appointmentApi, userApi } from '../services/api'
 
 interface Kinesiologo {
-  id: number
+  kinesiologo_id: number
+  user_id: number
   full_name: string
   email: string
+  specialty: string | null
 }
 
 interface Slot {
@@ -69,7 +71,7 @@ export default function Booking() {
 
   const loadKinesiologos = async () => {
     try {
-      const response = await userApi.getKinesiologos()
+      const response = await userApi.getKinesiologosProfiles()
       setKinesiologos(response.data)
     } catch (error) {
       console.error('Error loading kinesiologos:', error)
@@ -151,8 +153,8 @@ export default function Booking() {
               >
                 <option value="">Seleccionar...</option>
                 {kinesiologos.map((kine) => (
-                  <option key={kine.id} value={kine.id}>
-                    {kine.full_name}
+                  <option key={kine.kinesiologo_id} value={kine.kinesiologo_id}>
+                    {kine.full_name}{kine.specialty ? ` - ${kine.specialty}` : ''}
                   </option>
                 ))}
               </select>

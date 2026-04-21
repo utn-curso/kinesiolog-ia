@@ -64,3 +64,33 @@ async def read_kinesiologos(
     )
     kinesiologos = result.scalars().all()
     return kinesiologos
+
+
+@router.get("/kinesiologos-profiles")
+async def read_kinesiologos_profiles(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get list of kinesiologo profiles with user info (includes kinesiologo.id for booking)"""
+    result = await db.execute(
+        select(Kinesiologo)
+    )
+    kinesiologos = result.scalars().all()
+
+    profiles = []
+    for k in kinesiologos:
+        # Eagerly load user data
+        user_result = await db.execute(select(User).where(User.id == k.user_id))
+        user = user_result.scalars().first()
+        if user:
+            profiles.append({
+                "kinesiologo_id": k.id,
+                "user_id": user.id,
+                "full_name": user.full_name,
+                "email": user.email,
+                "specialty": k.specialty,
+                "license_number": k.license_number,
+                "is_available": k.is_available,
+            })
+
+    return profiles

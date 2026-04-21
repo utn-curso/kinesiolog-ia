@@ -75,7 +75,7 @@ class AppointmentService:
                 and_(
                     Appointment.kinesiologo_id == appointment_data.kinesiologo_id,
                     Appointment.date == appointment_data.date,
-                    Appointment.status.in_([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED])
+                    Appointment.status.in_([AppointmentStatus.PENDING.value, AppointmentStatus.CONFIRMED.value])
                 )
             )
         )
@@ -90,7 +90,7 @@ class AppointmentService:
             date=appointment_data.date,
             duration_minutes=appointment_data.duration_minutes,
             notes=appointment_data.notes,
-            status=AppointmentStatus.PENDING
+            status=AppointmentStatus.PENDING.value
         )
 
         self.db.add(appointment)
@@ -168,7 +168,7 @@ class AppointmentService:
                     Appointment.kinesiologo_id == kinesiologo_id,
                     Appointment.date >= start_time,
                     Appointment.date < end_time,
-                    Appointment.status.in_([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED])
+                    Appointment.status.in_([AppointmentStatus.PENDING.value, AppointmentStatus.CONFIRMED.value])
                 )
             )
         )

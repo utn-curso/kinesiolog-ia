@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.config import settings
-from app.models.user import User
+from app.models.user import User, Kinesiologo
 from app.schemas.user import UserCreate
 
 # Password hashing
@@ -56,9 +56,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
 
 async def create_user(db: AsyncSession, user: UserCreate) -> User:
     """Create new user"""
-    print("In create_user")
     hashed_password = get_password_hash(user.password)
-    print(f"Hashed password: {hashed_password}")
     db_user = User(
         email=user.email,
         hashed_password=hashed_password,
@@ -66,11 +64,17 @@ async def create_user(db: AsyncSession, user: UserCreate) -> User:
         phone=user.phone,
         role=getattr(user, 'role', 'patient') or 'patient',
     )
-    print(f"Created db_user: {db_user}")
     db.add(db_user)
-    print("Added to db")
     await db.commit()
-    print("Committed")
     await db.refresh(db_user)
-    print(f"Refreshed: {db_user}")
+    
+    # Create Kinesiologo profile if role is kinesiologo
+    if db_user.role == "kinesiologo":
+        kinesiologo = Kinesiologo(
+            user_id=db_user.id,
+            is_available=True
+        )
+        db.add(kinesiologo)
+        await db.commit()
+    
     return db_user

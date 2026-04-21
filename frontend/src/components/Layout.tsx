@@ -20,7 +20,7 @@ export function Layout({ children }: LayoutProps) {
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 px-8 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link to="/" className="text-2xl font-black text-teal-500">
-            Kine<span className="text-teal-50">Mov</span>
+            Kine<span className="text-gray-900">Mov</span>
           </Link>
 
           <div className="flex items-center gap-6">

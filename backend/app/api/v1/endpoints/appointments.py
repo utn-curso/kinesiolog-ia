@@ -47,6 +47,23 @@ async def get_appointments(
     return [to_dict(a) for a in appointments]
 
 
+@router.get("/available-slots/{kinesiologo_id}")
+async def get_available_slots(
+    kinesiologo_id: int,
+    date: str,  # YYYY-MM-DD
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        slot_date = datetime.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+
+    service = AppointmentService(db)
+    slots = await service.get_available_slots(kinesiologo_id, slot_date)
+    return {"available_slots": [slot.isoformat() for slot in slots]}
+
+
 @router.get("/{appointment_id}", response_model=AppointmentOut)
 async def get_appointment(
     appointment_id: int,
@@ -134,20 +151,3 @@ async def delete_appointment(
     if not success:
         raise HTTPException(status_code=404, detail="Appointment not found or access denied")
     return {"message": "Appointment deleted successfully"}
-
-
-@router.get("/available-slots/{kinesiologo_id}")
-async def get_available_slots(
-    kinesiologo_id: int,
-    date: str,  # YYYY-MM-DD
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    try:
-        slot_date = datetime.fromisoformat(date)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
-
-    service = AppointmentService(db)
-    slots = await service.get_available_slots(kinesiologo_id, slot_date)
-    return {"available_slots": [slot.isoformat() for slot in slots]}

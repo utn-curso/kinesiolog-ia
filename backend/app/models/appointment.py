@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -21,10 +21,10 @@ class Appointment(Base):
     kinesiologo_id = Column(Integer, ForeignKey("kinesiologos.id"), nullable=False)
     date = Column(DateTime, nullable=False)
     duration_minutes = Column(Integer, default=60)
-    status = Column(Enum(AppointmentStatus), default=AppointmentStatus.PENDING)
+    status = Column(String(20), default=AppointmentStatus.PENDING.value)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
     # Relationships
     patient = relationship("User", foreign_keys=[patient_id], back_populates="appointments")

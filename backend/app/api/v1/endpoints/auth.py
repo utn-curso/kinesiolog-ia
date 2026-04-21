@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.services.auth import authenticate_user, create_user, create_access_token
 from app.schemas.user import User, UserCreate, Token
-from app.utils.email import send_welcome_email
 
 router = APIRouter()
 
@@ -39,12 +38,9 @@ async def register(
 ):
     """Register new user"""
     try:
-        print("Starting register")
         # Check if user already exists
         from app.services.auth import get_user_by_email
-        print("Checking existing user")
         existing_user = await get_user_by_email(db, user_data.email)
-        print(f"Existing user: {existing_user}")
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -52,19 +48,12 @@ async def register(
             )
 
         # Create user
-        print("Creating user")
         user = await create_user(db, user_data)
-        print(f"User created: {user}")
-
-        # Send welcome email (async, don't wait)
-        # import asyncio
-        # print("Sending email")
-        # asyncio.create_task(send_welcome_email(user.email, user.full_name))
-
-        print("Returning user")
         return user
-    except Exception as e:
-        print(f"Error in register: {e}")
-        import traceback
-        traceback.print_exc()
+    except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration error: {str(e)}"
+        )
