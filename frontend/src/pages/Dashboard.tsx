@@ -15,6 +15,7 @@ interface Appointment {
 export default function Dashboard() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
+  const [timeRange, setTimeRange] = useState<'week' | 'month'>('month')
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -30,13 +31,55 @@ export default function Dashboard() {
     fetchAppointments()
   }, [])
 
-  const chartData = [420, 510, 380, 620, 590, 480, 667];
-  const chartLabels = ['Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar'];
+  const monthData = [420, 510, 380, 620, 590, 480, 667];
+  const monthLabels = ['Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar'];
+  
+  const weekData = [85, 92, 78, 110, 95, 102, 120];
+  const weekLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  const chartData = timeRange === 'month' ? monthData : weekData;
+  const chartLabels = timeRange === 'month' ? monthLabels : weekLabels;
   const maxVal = Math.max(...chartData) * 1.15;
+
+  // Real data logic: Filter appointments by date
+  const now = new Date();
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(now.getDate() - 7);
+  
+  const oneMonthAgo = new Date();
+  oneMonthAgo.setMonth(now.getMonth() - 1);
+
+  const appointmentsInMonth = appointments.filter(a => new Date(a.date) >= oneMonthAgo).length;
+  const appointmentsInWeek = appointments.filter(a => new Date(a.date) >= oneWeekAgo).length;
+
+  const totalMonth = appointments.length > 0 ? appointmentsInMonth : 148;
+  const totalWeek = appointments.length > 0 ? appointmentsInWeek : 37;
 
   return (
     <AdminLayout pageTitle="Dashboard">
       <div className="flex flex-col gap-5 max-w-[1200px] mx-auto">
+        {/* RANGE TOGGLE */}
+        <div className="flex justify-end mb-1">
+          <div className="bg-white border border-slate-200 p-1 rounded-xl flex gap-1 shadow-sm">
+            <button 
+              onClick={() => setTimeRange('week')}
+              className={`px-4 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+                timeRange === 'week' ? 'bg-teal-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              SEMANA
+            </button>
+            <button 
+              onClick={() => setTimeRange('month')}
+              className={`px-4 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+                timeRange === 'month' ? 'bg-teal-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              MES
+            </button>
+          </div>
+        </div>
+
         {/* STATS ROW */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
@@ -44,23 +87,25 @@ export default function Dashboard() {
               <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-teal-50">📅</div>
               <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 8%</span>
             </div>
-            <div className="text-3xl font-black leading-none text-slate-800">{appointments.length || '148'}</div>
-            <div className="text-xs text-slate-500 font-bold mt-1">Turnos registrados</div>
+            <div className="text-3xl font-black leading-none text-slate-800">
+              {timeRange === 'month' ? totalMonth : totalWeek}
+            </div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Turnos {timeRange === 'month' ? 'del mes' : 'esta semana'}</div>
           </div>
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
             <div className="flex justify-between items-start mb-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-orange-50">💰</div>
               <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 12%</span>
             </div>
-            <div className="text-3xl font-black leading-none text-slate-800">$667K</div>
-            <div className="text-xs text-slate-500 font-bold mt-1">Ingresos del mes</div>
+            <div className="text-3xl font-black leading-none text-slate-800">{timeRange === 'month' ? '$667K' : '$120K'}</div>
+            <div className="text-xs text-slate-500 font-bold mt-1">Ingresos {timeRange === 'month' ? 'mensuales' : 'semanales'}</div>
           </div>
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
             <div className="flex justify-between items-start mb-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-blue-50">👥</div>
               <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 5%</span>
             </div>
-            <div className="text-3xl font-black leading-none text-slate-800">34</div>
+            <div className="text-3xl font-black leading-none text-slate-800">{timeRange === 'month' ? '34' : '8'}</div>
             <div className="text-xs text-slate-500 font-bold mt-1">Pacientes nuevos</div>
           </div>
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
@@ -77,7 +122,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-[15px] font-extrabold text-slate-800">Ingresos mensuales</h3>
+              <h3 className="text-[15px] font-extrabold text-slate-800">Ingresos {timeRange === 'month' ? 'mensuales' : 'semanales'}</h3>
               <span className="text-xs text-teal-600 font-bold cursor-pointer">Ver reporte completo →</span>
             </div>
             <div className="flex items-end gap-2 h-[120px] pb-6 relative border-b border-slate-200">
