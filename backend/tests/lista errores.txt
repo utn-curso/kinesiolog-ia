@@ -1,0 +1,105 @@
+LISTA DE ERRORES ENCONTRADOS EN LA FASE DE TESTING
+===============================================
+
+Esta lista contiene todos los errores identificados durante la ejecución de tests, ordenados por importancia de resolución (de más crítico a menos crítico). Para cada error se incluye:
+- Descripción del problema
+- Impacto actual
+- Importancia de solucionar (escala: Muy importante / Importante / Moderadamente importante / Menos importante)
+- Dificultad de solucionar (escala: Fácil / Moderadamente fácil / Difícil / Muy difícil)
+
+1. CONFLICTO ENTRE ASYNC Y SYNC EN EL BACKEND
+   Descripción: El backend usa SQLAlchemy async (AsyncSession) pero los tests intentan usar sesiones síncronas, causando que los servicios no puedan acceder a la base de datos.
+   Impacto: Todos los endpoints fallan con 500 Internal Server Error en tests.
+   Importancia: Muy importante (impide que cualquier test funcione)
+   Dificultad: Moderadamente fácil (requiere unificar async/sync o cambiar configuración de tests)
+
+2. ERROR DE CONFIGURACIÓN DE BASE DE DATOS EN TESTS
+   Descripción: Los fixtures de pytest retornan async_generator en lugar de sesiones de base de datos reales.
+   Impacto: Tests de autenticación fallan porque no pueden ejecutar queries.
+   Importancia: Muy importante (base de todos los tests)
+   Dificultad: Moderadamente fácil (corregir configuración de fixtures)
+
+3. PROBLEMAS DE HILOS CON SQLITE
+   Descripción: SQLite in-memory no es thread-safe; TestClient ejecuta en hilos diferentes al que creó la DB.
+   Impacto: Base de datos inaccesible desde tests, causando errores de tabla no encontrada.
+   Importancia: Muy importante (impide ejecución de tests)
+   Dificultad: Fácil (cambiar a SQLite basado en archivos con configuración thread-safe)
+
+4. POSIBLE FALTA DE DATOS DE TEST
+   Descripción: Tests de appointments asumen existencia de kinesiólogos (kinesiologo_id=1) sin datos de seed.
+   Impacto: Tests de appointments fallarán si no hay datos iniciales.
+   Importancia: Importante (afecta funcionalidad específica de appointments)
+   Dificultad: Fácil (agregar fixtures para crear datos de test)
+
+5. PROBLEMAS DE LIMPIEZA DE BASE DE DATOS DE TEST
+   Descripción: Archivo de base de datos de test no se puede eliminar porque está siendo usado por otro proceso.
+   Impacto: Tests no pueden limpiarse apropiadamente entre ejecuciones.
+   Importancia: Moderadamente importante (inconveniente en desarrollo)
+   Dificultad: Moderadamente fácil (mejorar manejo de cleanup en fixtures)
+
+6. ✅ RESUELTO: WARNINGS DE DEPRECIÓN
+   Descripción: Múltiples warnings sobre código deprecated en FastAPI y SQLAlchemy (on_event, declarative_base, etc.).
+   Impacto: Código funciona pero eventualmente dejará de ser compatible.
+   Importancia: Menos importante (no impide funcionamiento actual)
+   Dificultad: Moderadamente fácil (actualizar dependencias y código)
+   ✅ Solución aplicada: Actualizadas dependencias a versiones más recientes, reemplazado @app.on_event con lifespan handlers, actualizado declarative_base(), cambiado de python-jose a PyJWT, y de passlib[bcrypt] a passlib con pbkdf2_sha256.
+
+=== ERRORES ENCONTRADOS EN TESTING MANUAL DEL FRONTEND ===
+
+7. PROTECCIÓN EXCESIVA DE RUTAS EN BOOKING
+   Descripción: La página de reserva de turnos (/booking) requiere autenticación inmediata, impidiendo que usuarios no registrados vean kinesiólogos y horarios disponibles.
+   Impacto: Usuarios no pueden explorar servicios sin registrarse primero, UX pobre.
+   Importancia: Importante (afecta experiencia de usuario)
+   Dificultad: Fácil (permitir vista pública de kinesiólogos, requerir login solo para confirmar reserva)
+
+8. CONFIGURACIÓN INCORRECTA DE CORS
+   Descripción: CORS configurado para puerto 5173 pero frontend corre en 5174. Backend permite localhost:5173 pero frontend usa 127.0.0.1:8000.
+   Impacto: Todas las peticiones API fallan con error CORS, aplicación no funcional.
+   Importancia: Muy importante (impide cualquier interacción con backend)
+   Dificultad: Fácil (actualizar configuración de CORS y URLs)
+
+9. INCONSISTENCIA EN URLs DE API
+   Descripción: Frontend configurado para usar http://127.0.0.1:8000/api pero backend corre en http://0.0.0.0:8000.
+   Impacto: Peticiones API fallan con "Network Error", aplicación no puede comunicarse con backend.
+   Importancia: Muy importante (impide funcionalidad completa)
+   Dificultad: Fácil (unificar URLs entre frontend y backend)
+
+10. WARNINGS DE REACT ROUTER
+    Descripción: Warnings sobre flags futuros de React Router (v7_startTransition, v7_relativeSplatPath).
+    Impacto: Warnings en consola, no afectan funcionalidad actual.
+    Importancia: Menos importante (solo warnings)
+    Dificultad: Fácil (actualizar configuración de React Router)
+
+11. FALTA DE PROTECCIÓN EN DASHBOARD
+    Descripción: Página de dashboard (/dashboard) no requiere autenticación y permite acceso como "Guest".
+    Impacto: Información sensible expuesta a usuarios no autenticados, vulnerabilidad de seguridad.
+    Importancia: Muy importante (problema de seguridad crítico)
+    Dificultad: Moderadamente fácil (agregar protección de rutas con autenticación)
+
+12. MANEJO INADECUADO DE ERRORES DE RED
+    Descripción: Frontend muestra "Network Error" genérico cuando falla conexión con API, sin distinguir entre CORS, timeouts, o errores del servidor.
+    Impacto: UX pobre, usuarios no entienden qué está pasando.
+    Importancia: Moderadamente importante (afecta experiencia de usuario)
+    Dificultad: Moderadamente fácil (mejorar manejo de errores en interceptores de Axios)
+
+13. AUSENCIA GENERALIZADA DE PROTECCIÓN DE RUTAS
+    Descripción: Múltiples páginas (/dashboard, /agenda) permiten acceso sin autenticación, mostrando datos como "Guest".
+    Impacto: Vulnerabilidades de seguridad críticas, exposición de información sensible.
+    Importancia: Crítica (problemas de seguridad graves)
+    Dificultad: Moderadamente fácil (implementar guards de autenticación en rutas)
+
+RESUMEN FINAL COMPLETO:
+- Tests backend: Todos fallan (problemas async/sync en configuración de tests)
+- Frontend: Landing page funciona correctamente, pero todas las funcionalidades que requieren API fallan
+- Problemas críticos identificados: CORS, URLs inconsistentes, falta total de protección de rutas
+- ✅ Warnings de deprecación: RESUELTOS (dependencias actualizadas, código modernizado)
+- Estado general: Aplicación parcialmente funcional, backend OK, frontend con problemas críticos de seguridad e integración
+
+PRIORIDADES DE RESOLUCIÓN (ordenadas por criticidad):
+1. 🔴 CRÍTICO: Corregir configuración CORS y URLs de API (impide cualquier funcionalidad)
+2. 🔴 CRÍTICO: Implementar protección de rutas en dashboard y agenda (vulnerabilidades de seguridad)
+3. 🟡 ALTO: Resolver conflicto async/sync en tests del backend
+4. 🟡 ALTO: Permitir vista pública de kinesiólogos en página de booking
+5. 🟢 MEDIO: "Mejorar manejo de errores de red en frontend"
+6. ✅ COMPLETADO: Actualizar dependencias deprecated y resolver warnings</content>
+<parameter name="filePath">d:\Users\Lucas\Documents\GitHub\kinesiolog-ia\backend\tests\lista errores.txt

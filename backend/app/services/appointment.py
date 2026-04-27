@@ -67,7 +67,7 @@ class AppointmentService:
     async def create_appointment(self, appointment_data: AppointmentCreate, patient_id: int) -> Appointment:
         # Check if kinesiologo exists and is available
         kinesiologo_result = await self.db.execute(
-            select(Kinesiologo).where(Kinesiologo.id == appointment_data.kinesiologo_id)
+            select(Kinesiologo).options(joinedload(Kinesiologo.user)).where(Kinesiologo.id == appointment_data.kinesiologo_id)
         )
         kinesiologo = kinesiologo_result.scalar_one_or_none()
         if not kinesiologo or not kinesiologo.is_available:

@@ -115,6 +115,38 @@ async def create_appointment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/process-payment")
+async def process_payment(
+    payment_data: dict,  # Mock payment data
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Process payment for appointment (mock implementation)"""
+    # In a real implementation, this would integrate with payment providers like MercadoPago, Stripe, etc.
+    # For now, we simulate a successful payment
+
+    # Validate payment data
+    if not payment_data.get('amount') or payment_data['amount'] <= 0:
+        raise HTTPException(status_code=400, detail="Invalid payment amount")
+
+    if not payment_data.get('appointment_id'):
+        raise HTTPException(status_code=400, detail="Appointment ID required")
+
+    # Simulate payment processing delay
+    import asyncio
+    await asyncio.sleep(1)
+
+    # Mock successful payment response
+    return {
+        "success": True,
+        "payment_id": f"mock_payment_{payment_data['appointment_id']}",
+        "amount": payment_data['amount'],
+        "method": payment_data.get('method', 'mock'),
+        "status": "approved",
+        "message": "Pago procesado exitosamente"
+    }
+
+
 @router.put("/{appointment_id}", response_model=AppointmentOut)
 async def update_appointment(
     appointment_id: int,

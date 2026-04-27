@@ -41,20 +41,20 @@ kinesiolog-ia/
 
 ### Fases de Implementación (12 total)
 
-| # | Fase | Duración | Depende | Status |
-|---|------|----------|---------|--------|
-| 1 | Preparación proyecto | 1h | - | ⏳ |
-| 2 | Backend estructurado | 2-3h | - | ⏳ |
-| 3 | Frontend setup | 2-3h | - | ⏳ |
-| 4 | **Backend APIs Core** | 4-5h | #2 | 🔑 |
-| 5 | Pagos + Notificaciones | 2-3h | #4 | ⏳ |
-| 6 | Landing Page | 1.5-2h | #3 | ⏳ |
-| 7 | **Auth Frontend** | 1-1.5h | #3,#2 | 🔑 |
-| 8 | **Flujo Reserva Turnos** | 3-4h | #7,#4 | 🔑 |
-| 9 | Dashboard Admin | 2-3h | #3,#7 | ⏳ |
-| 10 | Agenda Kinesiologo | 2-3h | #9,#4 | ⏳ |
-| 11 | Testing + QA | 2h | Todas | ⏳ |
-| 12 | Docs + Setup Local | 1.5h | Todas | ⏳ |
+| #  |           Fase           | Duración | Depende | Status |
+|----|--------------------------|----------|---------|--------|
+| 1  |   Preparación proyecto   |    1h    |    -    |   ⏳   |
+| 2  |   Backend estructurado   |   2-3h   |    -    |   ⏳   |
+| 3  |      Frontend setup      |   2-3h   |    -    |   ⏳   |
+| 4  |  **Backend APIs Core**   |   4-5h   |   #2    |  🔑   |
+| 5  |  Pagos + Notificaciones  |   2-3h   |   #4    |   ⏳   |
+| 6  |       Landing Page       |  1.5-2h  |   #3    |   ⏳   |
+| 7  |    **Auth Frontend**     |  1-1.5h  |  #3,#2  |  🔑   |
+| 8  | **Flujo Reserva Turnos** |   3-4h   |  #7,#4  |  🔑   |
+| 9  |     Dashboard Admin      |   2-3h   |  #3,#7  |   ⏳   |
+| 10 |    Agenda Kinesiologo    |   2-3h   |  #9,#4  |   ⏳   |
+| 11 |       Testing + QA       |    2h    |  Todas  |   ⏳   |
+| 12 |    Docs + Setup Local    |   1.5h   |  Todas  |   ⏳   |
 
 **Nota**: Fases #2 y #3 son **paralelizables**. #4 es bloqueante para muchas otras.
 

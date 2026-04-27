@@ -99,13 +99,21 @@ export default function Booking() {
   const handleBookAppointment = async () => {
     if (!selectedKinesiologo || !selectedSlot) return
     setBooking(true)
-    await new Promise(resolve => setTimeout(resolve, 2500))
     try {
-      await appointmentApi.createAppointment({
+      // First, create the appointment
+      const appointmentResponse = await appointmentApi.createAppointment({
         kinesiologo_id: selectedKinesiologo,
         date: selectedSlot,
         notes: `${selectedTreatment}${notes ? ` - ${notes}` : ''}`,
       })
+
+      // Then, process payment (mock)
+      await appointmentApi.processPayment({
+        appointment_id: appointmentResponse.data.id,
+        amount: 4500, // Fixed amount for demo
+        method: paymentMethod
+      })
+
       setStep(4)
     } catch (error) {
       console.error('Error booking appointment:', error)

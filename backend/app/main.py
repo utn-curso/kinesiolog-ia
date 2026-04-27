@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -15,31 +16,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Create FastAPI app
-app = FastAPI(
-    title="KineMov API",
-    description="API para plataforma de gestión de turnos de kinesiología",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
-)
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.frontend_url],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Include API routes
-app.include_router(api_router, prefix="/api")
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup"""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle application startup and shutdown events"""
+    # Startup
     logger.info("Starting KineMov API...")
 
     # Create tables
@@ -51,12 +32,34 @@ async def startup_event():
 
     logger.info("Database tables created/verified")
 
+    yield
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
+    # Shutdown
     logger.info("Shutting down KineMov API...")
     await engine.dispose()
+
+
+# Create FastAPI app
+app = FastAPI(
+    title="KineMov API",
+    description="API para plataforma de gestión de turnos de kinesiología",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API routes
+app.include_router(api_router, prefix="/api")
 
 
 @app.get("/health")
