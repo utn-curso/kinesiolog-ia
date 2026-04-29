@@ -23,12 +23,74 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting KineMov API...")
 
-    # Create tables
+    # Create tables (ensure all models are imported)
     from sqlalchemy import create_engine
-    from app.models import user, appointment
+    from app.models import user, appointment, notification
     sync_engine = create_engine(settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", ""))
     user.Base.metadata.create_all(bind=sync_engine)
     sync_engine.dispose()
+
+    # Start background reminder loop
+    import asyncio
+    from datetime import datetime, timedelta
+
+    async def _reminder_loop():
+        from sqlalchemy import select
+        from sqlalchemy.orm import joinedload
+        from app.database import async_session
+        from app.models.appointment import Appointment, AppointmentStatus
+        from app.models.notification import Notification
+        from app.models.user import User, Kinesiologo
+        from app.services.notification import NotificationService
+
+        while True:
+            try:
+                async with async_session() as session:
+                    now = datetime.utcnow()
+                    window_start = now + timedelta(hours=23)
+                    window_end = now + timedelta(hours=25)
+
+                    result = await session.execute(
+                        select(Appointment).where(
+                            Appointment.date >= window_start,
+                            Appointment.date <= window_end,
+                            Appointment.status == AppointmentStatus.CONFIRMED.value
+                        )
+                    )
+                    upcoming = result.scalars().all()
+
+                    for appt in upcoming:
+                        # Skip if a reminder notification already exists
+                        existing = await session.execute(
+                            select(Notification).where(Notification.appointment_id == appt.id, Notification.type == "reminder")
+                        )
+                        if existing.scalar_one_or_none():
+                            continue
+
+                        # Fetch related user and kinesiologo
+                        patient_res = await session.execute(select(User).where(User.id == appt.patient_id))
+                        patient = patient_res.scalar_one_or_none()
+                        kin_res = await session.execute(
+                            select(Kinesiologo).options(joinedload(Kinesiologo.user)).where(Kinesiologo.id == appt.kinesiologo_id)
+                        )
+                        kin = kin_res.scalar_one_or_none()
+
+                        if patient and kin and kin.user:
+                            service = NotificationService(session)
+                            try:
+                                await service.send_appointment_reminder(appt, patient, kin.user)
+                            except Exception:
+                                logger.exception("Failed to send reminder for appointment %s", appt.id)
+
+            except Exception:
+                logger.exception("Reminder loop error")
+
+            await asyncio.sleep(3600)
+
+    try:
+        asyncio.create_task(_reminder_loop())
+    except Exception:
+        logger.exception("Failed to start reminder loop")
 
     logger.info("Database tables created/verified")
 

@@ -8,8 +8,7 @@ from sqlalchemy.orm import joinedload
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.user import User, Kinesiologo
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
-from app.utils.email import send_appointment_confirmation
-from app.utils.sms import send_appointment_cancellation
+from app.services.notification import NotificationService
 
 
 class AppointmentService:
@@ -105,16 +104,13 @@ class AppointmentService:
         patient_result = await self.db.execute(select(User).where(User.id == patient_id))
         patient = patient_result.scalar_one_or_none()
         if patient:
-            date_str = appointment.date.strftime("%d/%m/%Y")
-            time_str = appointment.date.strftime("%H:%M")
+            # Use NotificationService to create and send notification
+            notif_service = NotificationService(self.db)
             asyncio.create_task(
-                send_appointment_confirmation(
-                    email=patient.email,
-                    patient_name=patient.full_name,
-                    kinesiologo_name=kinesiologo.user.full_name if kinesiologo.user else "Kinesiólogo(a)",
-                    service="Sesión de Kinesiología",
-                    date=date_str,
-                    time=time_str
+                notif_service.send_appointment_confirmation(
+                    appointment=appointment,
+                    patient=patient,
+                    kinesiologo=kinesiologo.user if kinesiologo else None,
                 )
             )
 
@@ -147,15 +143,12 @@ class AppointmentService:
             )
             kinesiologo = kinesiologo_result.scalar_one_or_none()
             if patient and kinesiologo and patient.phone:
-                date_str = appointment.date.strftime("%d/%m/%Y")
-                time_str = appointment.date.strftime("%H:%M")
+                notif_service = NotificationService(self.db)
                 asyncio.create_task(
-                    send_appointment_cancellation(
-                        phone=patient.phone,
-                        patient_name=patient.full_name,
-                        kinesiologo_name=kinesiologo.user.full_name if kinesiologo.user else "Kinesiólogo(a)",
-                        date=date_str,
-                        time=time_str
+                    notif_service.send_appointment_cancellation(
+                        appointment=appointment,
+                        patient=patient,
+                        kinesiologo=kinesiologo.user if kinesiologo else None,
                     )
                 )
 

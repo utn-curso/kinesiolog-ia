@@ -1,0 +1,11 @@
+To: +15551234567
+
+
+Hola Dev Tester,
+
+Este es un mensaje de prueba del sistema de notificaciones de KineMov.
+
+Si recibiste este email, el sistema está funcionando correctamente.
+
+Saludos,
+Equipo KineMov
