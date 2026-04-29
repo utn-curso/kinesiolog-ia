@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../context/auth'
 import { Layout } from '../components/Layout'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { Card } from '../components/Card'
+import { getApiErrorMessage } from '../services/api'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -12,13 +13,12 @@ export default function Login() {
   const [error, setError] = useState('')
   const { login, isLoading } = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const formatError = (error: any) => {
-    const detail = error?.response?.data?.detail
-    if (typeof detail === 'string') return detail
-    if (Array.isArray(detail)) return detail.map((item) => item.msg || JSON.stringify(item)).join('. ')
-    return error?.message || 'Error al iniciar sesión'
-  }
+  // Get the page user was trying to access before being redirected to login
+  const from = location.state?.from?.pathname || '/dashboard'
+
+  const formatError = (error: any) => getApiErrorMessage(error)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,7 +26,7 @@ export default function Login() {
 
     try {
       await login(email, password)
-      navigate('/dashboard')
+      navigate(from, { replace: true })
     } catch (err: any) {
       setError(formatError(err))
     }

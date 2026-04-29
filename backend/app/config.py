@@ -28,7 +28,12 @@ class Settings(BaseSettings):
 
     # CORS
     frontend_url: str = "http://localhost:5173"
-    cors_origins: list = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    cors_origins: list = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
+    ]
 
     # Environment
     environment: str = "development"

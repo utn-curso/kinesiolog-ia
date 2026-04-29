@@ -51,8 +51,7 @@ async def get_appointments(
 async def get_available_slots(
     kinesiologo_id: int,
     date: str,  # YYYY-MM-DD
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db)
 ):
     try:
         slot_date = datetime.fromisoformat(date)

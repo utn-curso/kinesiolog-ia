@@ -30,6 +30,7 @@ export default function Booking() {
   const [loading, setLoading] = useState(false)
   const [booking, setBooking] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
+  const [error, setError] = useState('')
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
   
   // Payment States
@@ -40,32 +41,50 @@ export default function Booking() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    if (!user) {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        navigate('/login')
-        return
-      }
-      const initializeAuth = async () => {
-        try {
+    // Permitir acceso público a la página de booking
+    // Solo requerir autenticación para confirmar la reserva
+    const initializeAuth = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (token) {
           await checkAuth()
-        } catch (error) {
-          navigate('/login')
-        } finally {
-          setAuthChecked(true)
         }
+      } catch (error) {
+        // No redirigir a login, permitir vista pública
+        console.log('Usuario no autenticado, permitiendo vista pública')
+      } finally {
+        setAuthChecked(true)
       }
-      initializeAuth()
-      return
     }
-    setAuthChecked(true)
-  }, [user, checkAuth, navigate])
+    initializeAuth()
+  }, [checkAuth])
 
   useEffect(() => {
-    if (authChecked && user) {
+    // Cargar kinesiólogos inmediatamente, sin requerir autenticación
+    if (authChecked) {
       loadKinesiologos()
     }
-  }, [authChecked, user])
+  }, [authChecked])
+
+  useEffect(() => {
+    // Restaurar estado de reserva pendiente si existe
+    const pendingBooking = localStorage.getItem('pendingBooking')
+    if (pendingBooking && user) {
+      try {
+        const bookingState = JSON.parse(pendingBooking)
+        setSelectedKinesiologo(bookingState.selectedKinesiologo)
+        setSelectedTreatment(bookingState.selectedTreatment)
+        setSelectedDate(bookingState.selectedDate)
+        setSelectedSlot(bookingState.selectedSlot)
+        setNotes(bookingState.notes)
+        setPaymentMethod(bookingState.paymentMethod)
+        setStep(bookingState.step)
+        localStorage.removeItem('pendingBooking')
+      } catch (error) {
+        console.error('Error restoring pending booking:', error)
+      }
+    }
+  }, [user])
 
   useEffect(() => {
     if (selectedKinesiologo && selectedDate) {
@@ -77,8 +96,9 @@ export default function Booking() {
     try {
       const response = await userApi.getKinesiologosProfiles()
       setKinesiologos(response.data)
-    } catch (error) {
-      console.error('Error loading kinesiologos:', error)
+      setError('')
+    } catch (error: any) {
+      setError(error.apiMessage || error.message || 'Error al cargar los kinesiólogos.')
     }
   }
 
@@ -88,8 +108,9 @@ export default function Booking() {
     try {
       const response = await appointmentApi.getAvailableSlots(selectedKinesiologo, selectedDate)
       setAvailableSlots(response.data.available_slots.map((slot: string) => ({ datetime: slot })))
-    } catch (error) {
-      console.error('Error loading slots:', error)
+      setError('')
+    } catch (error: any) {
+      setError(error.apiMessage || error.message || 'Error al cargar los horarios disponibles.')
       setAvailableSlots([])
     } finally {
       setLoading(false)
@@ -98,6 +119,24 @@ export default function Booking() {
 
   const handleBookAppointment = async () => {
     if (!selectedKinesiologo || !selectedSlot) return
+
+    // Requerir autenticación solo para confirmar la reserva
+    if (!user) {
+      // Guardar el estado actual en localStorage para restaurarlo después del login
+      const bookingState = {
+        selectedKinesiologo,
+        selectedTreatment,
+        selectedDate,
+        selectedSlot,
+        notes,
+        paymentMethod,
+        step: 3
+      }
+      localStorage.setItem('pendingBooking', JSON.stringify(bookingState))
+      navigate('/login?redirect=booking')
+      return
+    }
+
     setBooking(true)
     try {
       // First, create the appointment
@@ -115,9 +154,8 @@ export default function Booking() {
       })
 
       setStep(4)
-    } catch (error) {
-      console.error('Error booking appointment:', error)
-      alert('Error al reservar el turno')
+    } catch (error: any) {
+      setError(error.apiMessage || error.message || 'Error al reservar el turno.')
     } finally {
       setBooking(false)
     }
@@ -139,6 +177,12 @@ export default function Booking() {
         <Link to="/" className="text-xl font-black text-teal-600">KineMov</Link>
         <div className="w-[1px] h-5 bg-slate-200"></div>
         <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wide">Reservar turno</h2>
+        {!user && (
+          <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            Vista pública - Login requerido solo para confirmar
+          </div>
+        )}
       </header>
 
       {step < 4 && (
@@ -175,10 +219,31 @@ export default function Booking() {
       )}
 
       <main className="max-w-4xl mx-auto px-6 py-10">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 flex items-start gap-3">
+            <span className="text-lg">⚠️</span>
+            <div>
+              <p className="font-semibold">Error en el proceso de reserva</p>
+              <p className="text-xs mt-1">{error}</p>
+            </div>
+          </div>
+        )}
+        
         {step === 1 && (
           <Card className="p-10 animate-fade-in shadow-xl shadow-slate-100 border-slate-100">
             <h3 className="text-2xl font-black text-slate-900 mb-2">Elegí tu kinesiólogo</h3>
-            <p className="text-sm text-slate-500 mb-10">Seleccioná el profesional y el tratamiento para continuar</p>
+            <p className="text-sm text-slate-500 mb-4">Seleccioná el profesional y el tratamiento para continuar</p>
+            {!user && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <span className="text-blue-600 text-lg">ℹ️</span>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800">Vista pública disponible</p>
+                    <p className="text-xs text-blue-700 mt-1">Podés explorar kinesiólogos y horarios sin registrarte. El login solo es requerido para confirmar tu reserva.</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="space-y-8">
               <div>

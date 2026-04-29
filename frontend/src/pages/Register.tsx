@@ -5,6 +5,7 @@ import { Layout } from '../components/Layout'
 import { Button } from '../components/Button'
 import { Input } from '../components/Input'
 import { Card } from '../components/Card'
+import { getApiErrorMessage } from '../services/api'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -25,12 +26,7 @@ export default function Register() {
     }))
   }
 
-  const formatError = (error: any) => {
-    const detail = error?.response?.data?.detail
-    if (typeof detail === 'string') return detail
-    if (Array.isArray(detail)) return detail.map((item) => item.msg || JSON.stringify(item)).join('. ')
-    return error?.message || 'Error al registrarse'
-  }
+  const formatError = (error: any) => getApiErrorMessage(error)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

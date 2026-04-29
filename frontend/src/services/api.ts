@@ -1,11 +1,62 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api',
+  baseURL: (import.meta as any).env?.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
 })
+
+const getApiErrorMessage = (error: any): string => {
+  if (!error) return 'Error inesperado. Intenta de nuevo.'
+
+  if (error.response) {
+    const status = error.response.status
+    const detail = error.response.data?.detail
+
+    if (typeof detail === 'string' && detail.trim().length > 0) {
+      return detail
+    }
+
+    if (Array.isArray(detail) && detail.length > 0) {
+      return detail.map((item: any) => item.msg || JSON.stringify(item)).join('. ')
+    }
+
+    if (status >= 500) {
+      return 'Error del servidor. Intenta nuevamente más tarde.'
+    }
+
+    if (status === 401) {
+      return 'No autorizado. Por favor inicia sesión de nuevo.'
+    }
+
+    return `Error en la solicitud (${status}). Revisa los datos e intenta de nuevo.`
+  }
+
+  if (error.request) {
+    const message = String(error.message || '')
+    if (message.includes('Network Error')) {
+      return 'No se pudo conectar con el servidor. Verifica que el backend esté disponible y que no haya un problema de CORS.'
+    }
+    if (message.includes('timeout')) {
+      return 'La solicitud tardó demasiado. Intenta de nuevo en unos instantes.'
+    }
+    return 'Error de red. Revisa tu conexión e inténtalo nuevamente.'
+  }
+
+  return error.message || 'Error inesperado. Intenta de nuevo.'
+}
+
+const formatApiError = (error: any): any => {
+  const message = getApiErrorMessage(error)
+  return {
+    ...error,
+    message,
+    apiMessage: message,
+    status: error.response?.status,
+    originalError: error,
+  }
+}
 
 // Request interceptor to add auth token
 api.interceptors.request.use(
@@ -17,7 +68,7 @@ api.interceptors.request.use(
     return config
   },
   (error) => {
-    return Promise.reject(error)
+    return Promise.reject(formatApiError(error))
   }
 )
 
@@ -25,15 +76,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const formattedError = formatApiError(error)
+    if (formattedError.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
-    return Promise.reject(error)
+    return Promise.reject(formattedError)
   }
 )
 
 export default api
+export { getApiErrorMessage }
 
 // User API functions
 export const userApi = {

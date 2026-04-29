@@ -46,60 +46,95 @@ Esta lista contiene todos los errores identificados durante la ejecución de tes
 
 === ERRORES ENCONTRADOS EN TESTING MANUAL DEL FRONTEND ===
 
-7. PROTECCIÓN EXCESIVA DE RUTAS EN BOOKING
+7. ✅ RESUELTO: PROTECCIÓN EXCESIVA DE RUTAS EN BOOKING
    Descripción: La página de reserva de turnos (/booking) requiere autenticación inmediata, impidiendo que usuarios no registrados vean kinesiólogos y horarios disponibles.
    Impacto: Usuarios no pueden explorar servicios sin registrarse primero, UX pobre.
    Importancia: Importante (afecta experiencia de usuario)
    Dificultad: Fácil (permitir vista pública de kinesiólogos, requerir login solo para confirmar reserva)
+   ✅ Solución aplicada: 
+       - Modificada página Booking.tsx para permitir acceso público
+       - Carga de kinesiólogos y horarios disponibles sin autenticación
+       - Autenticación requerida solo para confirmar reserva
+       - Indicador visual de "Vista pública" en header
+       - Mensaje informativo explicando que login solo es para confirmar
+       - Estado de reserva pendiente guardado en localStorage para restaurar después del login
+       - Rutas backend /kinesiologos-profiles y /available-slots modificadas para acceso público
 
-8. CONFIGURACIÓN INCORRECTA DE CORS
+8. ✅ RESUELTO: CONFIGURACIÓN INCORRECTA DE CORS
    Descripción: CORS configurado para puerto 5173 pero frontend corre en 5174. Backend permite localhost:5173 pero frontend usa 127.0.0.1:8000.
    Impacto: Todas las peticiones API fallan con error CORS, aplicación no funcional.
    Importancia: Muy importante (impide cualquier interacción con backend)
    Dificultad: Fácil (actualizar configuración de CORS y URLs)
+   ✅ Solución aplicada: 
+       - Extendidos orígenes permitidos en backend para 5173 y 5174
+       - Se añadió soporte para localhost y 127.0.0.1 en ambos puertos
 
-9. INCONSISTENCIA EN URLs DE API
+9. ✅ RESUELTO: INCONSISTENCIA EN URLs DE API
    Descripción: Frontend configurado para usar http://127.0.0.1:8000/api pero backend corre en http://0.0.0.0:8000.
    Impacto: Peticiones API fallan con "Network Error", aplicación no puede comunicarse con backend.
    Importancia: Muy importante (impide funcionalidad completa)
    Dificultad: Fácil (unificar URLs entre frontend y backend)
+   ✅ Solución aplicada: 
+       - API baseURL de frontend ahora usa import.meta.env.VITE_API_BASE_URL o proxy relativo '/api'
+       - Esto elimina desajustes entre dominios y aprovecha proxy Vite en desarrollo
 
-10. WARNINGS DE REACT ROUTER
+10. ✅ RESUELTO: WARNINGS DE REACT ROUTER
     Descripción: Warnings sobre flags futuros de React Router (v7_startTransition, v7_relativeSplatPath).
     Impacto: Warnings en consola, no afectan funcionalidad actual.
     Importancia: Menos importante (solo warnings)
     Dificultad: Fácil (actualizar configuración de React Router)
+    ✅ Solución aplicada: Actualizada la dependencia react-router-dom a la versión 7.14.2 para eliminar los warnings de compatibilidad de React Router.
 
-11. FALTA DE PROTECCIÓN EN DASHBOARD
+11. ✅ RESUELTO: FALTA DE PROTECCIÓN EN DASHBOARD
     Descripción: Página de dashboard (/dashboard) no requiere autenticación y permite acceso como "Guest".
     Impacto: Información sensible expuesta a usuarios no autenticados, vulnerabilidad de seguridad.
     Importancia: Muy importante (problema de seguridad crítico)
     Dificultad: Moderadamente fácil (agregar protección de rutas con autenticación)
+    ✅ Solución aplicada: Implementado componente ProtectedRoute que verifica autenticación antes de permitir acceso a rutas protegidas.
 
-12. MANEJO INADECUADO DE ERRORES DE RED
+12. ✅ RESUELTO: MANEJO INADECUADO DE ERRORES DE RED
     Descripción: Frontend muestra "Network Error" genérico cuando falla conexión con API, sin distinguir entre CORS, timeouts, o errores del servidor.
     Impacto: UX pobre, usuarios no entienden qué está pasando.
     Importancia: Moderadamente importante (afecta experiencia de usuario)
     Dificultad: Moderadamente fácil (mejorar manejo de errores en interceptores de Axios)
+    ✅ Solución aplicada: 
+       - Función getApiErrorMessage() que distingue entre:
+         * Errores de red (CORS, conexión fallida, timeout)
+         * Errores del servidor (5xx)
+         * Errores de autenticación (401)
+         * Errores de validación (4xx)
+       - Interceptores mejorados en Axios que formatean errores
+       - Visualización clara de errores en Agenda, Dashboard, Booking
+       - Contexto de autenticación mejorado con manejo de errores
+       - Mensajes específicos y accionables en español para cada tipo de error
 
-13. AUSENCIA GENERALIZADA DE PROTECCIÓN DE RUTAS
+13. ✅ RESUELTO: AUSENCIA GENERALIZADA DE PROTECCIÓN DE RUTAS
     Descripción: Múltiples páginas (/dashboard, /agenda) permiten acceso sin autenticación, mostrando datos como "Guest".
     Impacto: Vulnerabilidades de seguridad críticas, exposición de información sensible.
     Importancia: Crítica (problemas de seguridad graves)
     Dificultad: Moderadamente fácil (implementar guards de autenticación en rutas)
+    ✅ Solución aplicada: 
+       - Creado componente ProtectedRoute que verifica autenticación
+       - Aplicado a rutas /dashboard y /agenda
+       - Redirección automática al login para usuarios no autenticados
+       - Redirección inteligente después del login a la página originalmente solicitada
+       - Rutas del backend ya protegidas con autenticación requerida
 
-RESUMEN FINAL COMPLETO:
+RESUMEN FINAL ACTUALIZADO:
 - Tests backend: Todos fallan (problemas async/sync en configuración de tests)
-- Frontend: Landing page funciona correctamente, pero todas las funcionalidades que requieren API fallan
-- Problemas críticos identificados: CORS, URLs inconsistentes, falta total de protección de rutas
-- ✅ Warnings de deprecación: RESUELTOS (dependencias actualizadas, código modernizado)
-- Estado general: Aplicación parcialmente funcional, backend OK, frontend con problemas críticos de seguridad e integración
+- Frontend: Landing page funciona correctamente
+- ✅ Manejo de errores: RESUELTO (mensajes claros y específicos en lugar de "Network Error")
+- ✅ Deprecaciones: RESUELTAS (dependencias actualizadas, código modernizado)
+- ✅ Vista pública booking: RESUELTA (kinesiólogos y horarios visibles sin login, autenticación solo para confirmar)
+- ✅ Protección de rutas: RESUELTA (dashboard y agenda requieren autenticación)
+- Problemas críticos restantes: CORS, URLs inconsistentes
+- Estado general: Aplicación parcialmente funcional, problemas de integración restantes
 
 PRIORIDADES DE RESOLUCIÓN (ordenadas por criticidad):
 1. 🔴 CRÍTICO: Corregir configuración CORS y URLs de API (impide cualquier funcionalidad)
-2. 🔴 CRÍTICO: Implementar protección de rutas en dashboard y agenda (vulnerabilidades de seguridad)
-3. 🟡 ALTO: Resolver conflicto async/sync en tests del backend
-4. 🟡 ALTO: Permitir vista pública de kinesiólogos en página de booking
-5. 🟢 MEDIO: "Mejorar manejo de errores de red en frontend"
+2. 🟡 ALTO: Resolver conflicto async/sync en tests del backend
+3. ✅ COMPLETADO: Implementar protección de rutas en dashboard y agenda (vulnerabilidades de seguridad)
+4. ✅ COMPLETADO: Permitir vista pública de kinesiólogos en página de booking
+5. ✅ COMPLETADO: Mejorar manejo de errores de red en frontend
 6. ✅ COMPLETADO: Actualizar dependencias deprecated y resolver warnings</content>
 <parameter name="filePath">d:\Users\Lucas\Documents\GitHub\kinesiolog-ia\backend\tests\lista errores.txt

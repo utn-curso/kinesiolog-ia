@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Booking from './pages/Booking'
 import Agenda from './pages/Agenda'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   return (
@@ -13,9 +14,17 @@ function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/booking" element={<Booking />} />
-        <Route path="/agenda" element={<Agenda />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/agenda" element={
+          <ProtectedRoute>
+            <Agenda />
+          </ProtectedRoute>
+        } />
       </Routes>
     </div>
   )

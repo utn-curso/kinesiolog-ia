@@ -68,10 +68,9 @@ async def read_kinesiologos(
 
 @router.get("/kinesiologos-profiles")
 async def read_kinesiologos_profiles(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
+    db: AsyncSession = Depends(get_db)
 ):
-    """Get list of kinesiologo profiles with user info (includes kinesiologo.id for booking)"""
+    """Get list of kinesiologo profiles with user info (public access for booking)"""
     result = await db.execute(
         select(Kinesiologo)
     )

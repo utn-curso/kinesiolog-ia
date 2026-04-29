@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import api from '../services/api'
+import api, { getApiErrorMessage } from '../services/api'
 
 interface User {
   id: number
@@ -13,6 +13,7 @@ interface AuthState {
   user: User | null
   token: string | null
   isLoading: boolean
+  error: string | null
   login: (email: string, password: string) => Promise<void>
   register: (userData: { email: string; password: string; full_name: string; phone?: string; role?: string }) => Promise<void>
   logout: () => void
@@ -25,9 +26,10 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isLoading: false,
+      error: null,
 
       login: async (email: string, password: string) => {
-        set({ isLoading: true })
+        set({ isLoading: true, error: null })
         try {
           const formData = new URLSearchParams()
           formData.append('username', email)
@@ -43,26 +45,28 @@ export const useAuthStore = create<AuthState>()(
           localStorage.setItem('token', access_token)
           set({ token: access_token, isLoading: false })
           await get().checkAuth()
-        } catch (error) {
-          set({ isLoading: false })
+        } catch (error: any) {
+          const errorMessage = getApiErrorMessage(error)
+          set({ isLoading: false, error: errorMessage })
           throw error
         }
       },
 
       register: async (userData) => {
-        set({ isLoading: true })
+        set({ isLoading: true, error: null })
         try {
           await api.post('/auth/register', userData)
           set({ isLoading: false })
-        } catch (error) {
-          set({ isLoading: false })
+        } catch (error: any) {
+          const errorMessage = getApiErrorMessage(error)
+          set({ isLoading: false, error: errorMessage })
           throw error
         }
       },
 
       logout: () => {
         localStorage.removeItem('token')
-        set({ user: null, token: null })
+        set({ user: null, token: null, error: null })
       },
 
       checkAuth: async () => {
@@ -71,10 +75,10 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const response = await api.get('/users/me')
-          set({ user: response.data, token })
+          set({ user: response.data, token, error: null })
         } catch (error) {
           localStorage.removeItem('token')
-          set({ user: null, token: null })
+          set({ user: null, token: null, error: null })
         }
       },
     }),
