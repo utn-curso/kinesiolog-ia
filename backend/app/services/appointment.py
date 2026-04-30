@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
@@ -106,12 +106,10 @@ class AppointmentService:
         if patient:
             # Use NotificationService to create and send notification
             notif_service = NotificationService(self.db)
-            asyncio.create_task(
-                notif_service.send_appointment_confirmation(
-                    appointment=appointment,
-                    patient=patient,
-                    kinesiologo=kinesiologo.user if kinesiologo else None,
-                )
+            await notif_service.send_appointment_confirmation(
+                appointment=appointment,
+                patient=patient,
+                kinesiologo=kinesiologo.user if kinesiologo else None,
             )
 
         return appointment
@@ -130,12 +128,16 @@ class AppointmentService:
         for field, value in update_data.model_dump(exclude_unset=True).items():
             setattr(appointment, field, value)
 
-        appointment.updated_at = datetime.utcnow()
+        appointment.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
         await self.db.refresh(appointment)
 
         # If cancelled, send notification
-        if getattr(appointment, 'status', None) == AppointmentStatus.CANCELLED.value or update_data.status == AppointmentStatus.CANCELLED:
+        is_cancelled = (
+            getattr(appointment, 'status', None) == AppointmentStatus.CANCELLED.value
+            or (update_data.status is not None and update_data.status == AppointmentStatus.CANCELLED)
+        )
+        if is_cancelled:
             patient_result = await self.db.execute(select(User).where(User.id == appointment.patient_id))
             patient = patient_result.scalar_one_or_none()
             kinesiologo_result = await self.db.execute(
@@ -144,12 +146,10 @@ class AppointmentService:
             kinesiologo = kinesiologo_result.scalar_one_or_none()
             if patient and kinesiologo and patient.phone:
                 notif_service = NotificationService(self.db)
-                asyncio.create_task(
-                    notif_service.send_appointment_cancellation(
-                        appointment=appointment,
-                        patient=patient,
-                        kinesiologo=kinesiologo.user if kinesiologo else None,
-                    )
+                await notif_service.send_appointment_cancellation(
+                    appointment=appointment,
+                    patient=patient,
+                    kinesiologo=kinesiologo.user if kinesiologo else None,
                 )
 
         return appointment

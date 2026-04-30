@@ -1,0 +1,18 @@
+From: noreply@kinemov.com
+To: conflict_pat@example.com
+Subject: Confirmación de Turno - KineMov
+
+
+Hola Conflict Patient,
+
+Tu turno ha sido confirmado:
+
+📅 Fecha: 01/07/2026
+⏰ Hora: 14:00
+👨‍⚕️ Kinesiólogo: Dr. Conflict
+📝 Notas: First booking
+
+Si necesitas cancelar o reprogramar, hacerlo con al menos 24 horas de anticipación.
+
+Saludos,
+Equipo KineMov

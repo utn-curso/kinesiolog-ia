@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioException
@@ -21,7 +21,7 @@ async def send_sms(to_phone: str, message: str) -> bool:
                 base_dir = Path(__file__).resolve().parents[2]
                 out_dir = base_dir / "tmp_sms"
                 out_dir.mkdir(parents=True, exist_ok=True)
-                stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S%f")
+                stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
                 safe_to = to_phone.replace("+", "p").replace(" ", "_")
                 fname = f"{stamp}_{safe_to}.txt"
                 content = f"To: {to_phone}\n\n{message}"

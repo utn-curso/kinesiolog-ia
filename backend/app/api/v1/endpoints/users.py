@@ -25,7 +25,7 @@ async def update_user_me(
     db: AsyncSession = Depends(get_db)
 ):
     """Update current user information"""
-    update_data = user_update.dict(exclude_unset=True)
+    update_data = user_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(current_user, field, value)
 

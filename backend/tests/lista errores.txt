@@ -7,35 +7,40 @@ Esta lista contiene todos los errores identificados durante la ejecución de tes
 - Importancia de solucionar (escala: Muy importante / Importante / Moderadamente importante / Menos importante)
 - Dificultad de solucionar (escala: Fácil / Moderadamente fácil / Difícil / Muy difícil)
 
-1. CONFLICTO ENTRE ASYNC Y SYNC EN EL BACKEND
+1. ✅ RESUELTO: CONFLICTO ENTRE ASYNC Y SYNC EN EL BACKEND
    Descripción: El backend usa SQLAlchemy async (AsyncSession) pero los tests intentan usar sesiones síncronas, causando que los servicios no puedan acceder a la base de datos.
    Impacto: Todos los endpoints fallan con 500 Internal Server Error en tests.
    Importancia: Muy importante (impide que cualquier test funcione)
    Dificultad: Moderadamente fácil (requiere unificar async/sync o cambiar configuración de tests)
+   ✅ Solución aplicada: Suite de tests reescrita usando httpx.AsyncClient y fixtures asíncronos para respetar la arquitectura de la base de datos async.
 
-2. ERROR DE CONFIGURACIÓN DE BASE DE DATOS EN TESTS
+2. ✅ RESUELTO: ERROR DE CONFIGURACIÓN DE BASE DE DATOS EN TESTS
    Descripción: Los fixtures de pytest retornan async_generator en lugar de sesiones de base de datos reales.
    Impacto: Tests de autenticación fallan porque no pueden ejecutar queries.
    Importancia: Muy importante (base de todos los tests)
    Dificultad: Moderadamente fácil (corregir configuración de fixtures)
+   ✅ Solución aplicada: Reconfigurados los fixtures en pytest para usar async_sessionmaker adecuadamente y mockear get_db.
 
-3. PROBLEMAS DE HILOS CON SQLITE
+3. ✅ RESUELTO: PROBLEMAS DE HILOS CON SQLITE
    Descripción: SQLite in-memory no es thread-safe; TestClient ejecuta en hilos diferentes al que creó la DB.
    Impacto: Base de datos inaccesible desde tests, causando errores de tabla no encontrada.
    Importancia: Muy importante (impide ejecución de tests)
    Dificultad: Fácil (cambiar a SQLite basado en archivos con configuración thread-safe)
+   ✅ Solución aplicada: TestClient fue reemplazado y se usa sqlite+aiosqlite con ASGITransport eludiendo la necesidad de múltiples hilos conflictivos.
 
-4. POSIBLE FALTA DE DATOS DE TEST
+4. ✅ RESUELTO: POSIBLE FALTA DE DATOS DE TEST
    Descripción: Tests de appointments asumen existencia de kinesiólogos (kinesiologo_id=1) sin datos de seed.
    Impacto: Tests de appointments fallarán si no hay datos iniciales.
    Importancia: Importante (afecta funcionalidad específica de appointments)
    Dificultad: Fácil (agregar fixtures para crear datos de test)
+   ✅ Solución aplicada: Se integraron llamadas directas a los endpoints de registro de kinesiólogos dentro del setup de los tests de appointments.
 
-5. PROBLEMAS DE LIMPIEZA DE BASE DE DATOS DE TEST
+5. ✅ RESUELTO: PROBLEMAS DE LIMPIEZA DE BASE DE DATOS DE TEST
    Descripción: Archivo de base de datos de test no se puede eliminar porque está siendo usado por otro proceso.
    Impacto: Tests no pueden limpiarse apropiadamente entre ejecuciones.
    Importancia: Moderadamente importante (inconveniente en desarrollo)
    Dificultad: Moderadamente fácil (mejorar manejo de cleanup en fixtures)
+   ✅ Solución aplicada: Implementada la limpieza asíncrona de base de datos y cierre adecuado de conexiones engine.dispose().
 
 6. ✅ RESUELTO: WARNINGS DE DEPRECIÓN
    Descripción: Múltiples warnings sobre código deprecated en FastAPI y SQLAlchemy (on_event, declarative_base, etc.).
@@ -121,20 +126,20 @@ Esta lista contiene todos los errores identificados durante la ejecución de tes
        - Rutas del backend ya protegidas con autenticación requerida
 
 RESUMEN FINAL ACTUALIZADO:
-- Tests backend: Todos fallan (problemas async/sync en configuración de tests)
-- Frontend: Landing page funciona correctamente
-- ✅ Manejo de errores: RESUELTO (mensajes claros y específicos en lugar de "Network Error")
-- ✅ Deprecaciones: RESUELTAS (dependencias actualizadas, código modernizado)
-- ✅ Vista pública booking: RESUELTA (kinesiólogos y horarios visibles sin login, autenticación solo para confirmar)
-- ✅ Protección de rutas: RESUELTA (dashboard y agenda requieren autenticación)
-- Problemas críticos restantes: CORS, URLs inconsistentes
-- Estado general: Aplicación parcialmente funcional, problemas de integración restantes
+- ✅ Tests backend: Reescritos con httpx AsyncClient y fixtures async (conflicto async/sync resuelto). Todos los 14 tests pasan correctamente.
+- ✅ Frontend: Landing page funciona correctamente.
+- ✅ Manejo de errores: RESUELTO (mensajes claros y específicos en lugar de "Network Error").
+- ✅ Deprecaciones: RESUELTAS (dependencias actualizadas, código modernizado, datetime.utcnow() mitigado).
+- ✅ Vista pública booking: RESUELTA (kinesiólogos y horarios visibles sin login, autenticación solo para confirmar).
+- ✅ Protección de rutas: RESUELTA (dashboard y agenda requieren autenticación, roles configurados en ProtectedRoute).
+- ✅ CORS: RESUELTO (orígenes permitidos extendidos para puertos 5173 y 5174).
+- ✅ URLs inconsistentes: RESUELTO (proxy Vite configurado, baseURL unificada).
+- Estado general: Aplicación funcional, tests 100% operativos.
 
 PRIORIDADES DE RESOLUCIÓN (ordenadas por criticidad):
-1. 🔴 CRÍTICO: Corregir configuración CORS y URLs de API (impide cualquier funcionalidad)
-2. 🟡 ALTO: Resolver conflicto async/sync en tests del backend
-3. ✅ COMPLETADO: Implementar protección de rutas en dashboard y agenda (vulnerabilidades de seguridad)
+1. ✅ COMPLETADO: Corregir configuración CORS y URLs de API
+2. ✅ COMPLETADO: Resolver conflicto async/sync en tests del backend (reescrito con httpx AsyncClient)
+3. ✅ COMPLETADO: Implementar protección de rutas en dashboard y agenda (con roles)
 4. ✅ COMPLETADO: Permitir vista pública de kinesiólogos en página de booking
 5. ✅ COMPLETADO: Mejorar manejo de errores de red en frontend
-6. ✅ COMPLETADO: Actualizar dependencias deprecated y resolver warnings</content>
-<parameter name="filePath">d:\Users\Lucas\Documents\GitHub\kinesiolog-ia\backend\tests\lista errores.txt
+6. ✅ COMPLETADO: Actualizar dependencias deprecated y resolver warnings

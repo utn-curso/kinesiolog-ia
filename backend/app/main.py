@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
 
     # Start background reminder loop
     import asyncio
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     async def _reminder_loop():
         from sqlalchemy import select
@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
         while True:
             try:
                 async with async_session() as session:
-                    now = datetime.utcnow()
+                    now = datetime.now(timezone.utc)
                     window_start = now + timedelta(hours=23)
                     window_end = now + timedelta(hours=25)
 

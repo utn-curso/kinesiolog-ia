@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -252,7 +252,7 @@ Equipo KineMov
         # Actualizar registro de notificación
         try:
             notification.sent = success
-            notification.sent_at = datetime.utcnow() if success else None
+            notification.sent_at = datetime.now(timezone.utc) if success else None
             if error_messages:
                 notification.error_message = "; ".join(error_messages)
 

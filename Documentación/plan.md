@@ -1,4 +1,4 @@
-﻿# Plan: KineMov - Plataforma de Gestión de Turnos de Kinesiología
+# Plan: KineMov - Plataforma de Gestión de Turnos de Kinesiología
 
 ### TL;DR
 Construiremos una aplicación **full-stack scalable** con:

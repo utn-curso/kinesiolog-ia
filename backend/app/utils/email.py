@@ -3,7 +3,7 @@ from typing import Optional
 from aiosmtplib import send
 from email.message import EmailMessage
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.config import settings
 
@@ -77,7 +77,7 @@ async def send_email(
             base_dir = Path(__file__).resolve().parents[2]
             out_dir = base_dir / "tmp_emails"
             out_dir.mkdir(parents=True, exist_ok=True)
-            stamp = datetime.utcnow().strftime("%Y%m%dT%H%M%S%f")
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f")
             safe_to = to_email.replace("@", "_at_").replace(".", "_")
             fname = f"{stamp}_{safe_to}.txt"
             content = f"From: {settings.email_from}\nTo: {to_email}\nSubject: {subject}\n\n"

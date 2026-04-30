@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AdminLayout } from '../components/AdminLayout'
 import { appointmentApi } from '../services/api'
+import { useAuthStore } from '../context/auth'
 
 interface Appointment {
   id: number;
@@ -17,6 +19,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('month')
+  
+  const user = useAuthStore(state => state.user)
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -33,6 +37,101 @@ export default function Dashboard() {
     fetchAppointments()
   }, [])
 
+  // Patient Dashboard View
+  if (user?.role === 'patient') {
+    return (
+      <AdminLayout pageTitle="Mis Turnos">
+        {error && (
+          <div className="max-w-[1200px] mx-auto mb-4 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 flex items-start gap-3">
+            <span className="text-lg">⚠️</span>
+            <div>
+              <p className="font-semibold">Error al cargar turnos</p>
+              <p className="text-xs mt-1">{error}</p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-5 max-w-[1200px] mx-auto">
+          {/* Welcome & Action Row */}
+          <div className="bg-white rounded-xl p-6 border border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+            <div>
+              <h2 className="text-xl font-black text-slate-800">Hola, {user.full_name} 👋</h2>
+              <p className="text-sm text-slate-500 mt-1">Aquí puedes ver tus próximos turnos y tu historial de atención.</p>
+            </div>
+            <Link 
+              to="/booking"
+              className="bg-teal-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-md hover:bg-teal-700 transition-colors shrink-0"
+            >
+              Reservar Nuevo Turno
+            </Link>
+          </div>
+
+          {/* Appointments List */}
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
+            <div className="p-5 border-b border-slate-200">
+              <h3 className="text-[15px] font-extrabold text-slate-800">Mis Turnos Registrados</h3>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-5 py-3 text-[11px] font-extrabold text-slate-400 uppercase tracking-wide border-b border-slate-200">Fecha y Hora</th>
+                    <th className="px-5 py-3 text-[11px] font-extrabold text-slate-400 uppercase tracking-wide border-b border-slate-200">Kinesiólogo</th>
+                    <th className="px-5 py-3 text-[11px] font-extrabold text-slate-400 uppercase tracking-wide border-b border-slate-200">Estado</th>
+                    <th className="px-5 py-3 text-[11px] font-extrabold text-slate-400 uppercase tracking-wide border-b border-slate-200">Notas</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan={4} className="text-center py-8 text-sm text-slate-500 font-medium">Cargando tus turnos...</td></tr>
+                  ) : appointments.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center py-12">
+                        <div className="text-4xl mb-3">📅</div>
+                        <p className="text-sm text-slate-600 font-medium mb-1">No tienes turnos programados</p>
+                        <p className="text-xs text-slate-400">Puedes reservar tu próximo turno haciendo clic arriba.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    appointments.map(app => (
+                      <tr key={app.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="text-[13px] font-bold text-slate-800">
+                            {new Date(app.date).toLocaleDateString('es-AR', {weekday: 'long', day: '2-digit', month: 'long'})}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                            {new Date(app.date).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})} hs
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-[13px] font-medium text-slate-600">
+                          {app.kinesiologo?.user?.full_name || 'Kinesiólogo asignado'}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize ${
+                            app.status === 'confirmed' ? 'bg-green-50 text-green-600 border border-green-100' :
+                            app.status === 'pending' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
+                            'bg-red-50 text-red-600 border border-red-100'
+                          }`}>
+                            {app.status === 'confirmed' ? 'Confirmado' : app.status === 'pending' ? 'Pendiente' : 'Cancelado'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-[12px] text-slate-500 max-w-[200px] truncate">
+                          {app.notes || '-'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  // Admin / Kinesiologo Dashboard View
   const monthData = [420, 510, 380, 620, 590, 480, 667];
   const monthLabels = ['Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar'];
   

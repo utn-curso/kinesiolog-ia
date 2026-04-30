@@ -1,154 +1,279 @@
 # Tests para KineMov Backend
 # Ejecutar con: pytest
 
+import os
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from app.main import app
-from app.database import get_db
-from app.models.user import User, Kinesiologo
-from app.models.appointment import Appointment
+from app.database import get_db, Base
 
 # Configuración de base de datos de test
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_kinemov.db"
+TEST_DB_PATH = "test_kinemov.db"
+TEST_DATABASE_URL = f"sqlite+aiosqlite:///./{TEST_DB_PATH}"
 
-@pytest.fixture(scope="session")
-async def test_db_engine():
-    """Create test database engine"""
+
+@pytest_asyncio.fixture()
+async def client():
+    """Create async test client with isolated test database"""
+    # Clean up any leftover test database
+    if os.path.exists(TEST_DB_PATH):
+        try:
+            os.remove(TEST_DB_PATH)
+        except OSError:
+            pass
+
     engine = create_async_engine(TEST_DATABASE_URL, echo=False)
 
     # Create tables
-    from app.database import Base
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    yield engine
+    # Create async session factory
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    # Cleanup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-@pytest.fixture
-async def test_db_session(test_db_engine):
-    """Create test database session"""
-    async_session = sessionmaker(test_db_engine, class_=AsyncSession, expire_on_commit=False)
-    session = async_session()
-    yield session
-    await session.close()
-
-@pytest.fixture
-def client():
-    """Create test client"""
-    from fastapi.testclient import TestClient
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    from app.database import Base
-
-    # Create file-based SQLite database for tests (thread-safe)
-    import os
-    test_db_path = "test_kinemov.db"
-    if os.path.exists(test_db_path):
-        os.remove(test_db_path)
-
-    engine = create_engine(f"sqlite:///{test_db_path}", echo=False, connect_args={"check_same_thread": False})
-    Base.metadata.create_all(bind=engine)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    def override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+    async def override_get_db():
+        async with session_factory() as session:
+            yield session
 
     app.dependency_overrides[get_db] = override_get_db
-    client = TestClient(app)
-    yield client
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+
     app.dependency_overrides.clear()
 
     # Cleanup
-    if os.path.exists(test_db_path):
-        os.remove(test_db_path)
+    await engine.dispose()
+    if os.path.exists(TEST_DB_PATH):
+        try:
+            os.remove(TEST_DB_PATH)
+        except OSError:
+            pass
 
+
+# --- Helper functions ---
+
+async def register_user(client: AsyncClient, email: str, password: str, full_name: str, role: str = "patient", phone: str = "+1234567890"):
+    """Helper to register a user and return the response data"""
+    user_data = {
+        "email": email,
+        "password": password,
+        "full_name": full_name,
+        "phone": phone,
+        "role": role,
+    }
+    response = await client.post("/api/auth/register", json=user_data)
+    return response
+
+
+async def login_user(client: AsyncClient, email: str, password: str) -> str:
+    """Helper to login and return the access token"""
+    login_data = {"username": email, "password": password}
+    response = await client.post(
+        "/api/auth/login",
+        data=login_data,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    return response.json()["access_token"]
+
+
+def auth_headers(token: str) -> dict:
+    """Helper to build authorization headers"""
+    return {"Authorization": f"Bearer {token}"}
+
+
+# --- Auth Tests ---
+
+@pytest.mark.asyncio
 class TestAuth:
     """Tests para autenticación"""
 
-    def test_register_user(self, client):
+    async def test_register_user(self, client: AsyncClient):
         """Test user registration"""
-        user_data = {
-            "email": "test@example.com",
-            "password": "testpass123",
-            "full_name": "Test User",
-            "phone": "+1234567890",
-            "role": "patient"
-        }
-
-        response = client.post("/api/auth/register", json=user_data)
+        response = await register_user(client, "test@example.com", "testpass123", "Test User")
         assert response.status_code == 200
         data = response.json()
         assert "id" in data
-        assert data["email"] == user_data["email"]
-        assert data["role"] == user_data["role"]
+        assert data["email"] == "test@example.com"
+        assert data["role"] == "patient"
 
-    def test_login_user(self, client):
+    async def test_register_duplicate_email(self, client: AsyncClient):
+        """Test that duplicate email registration fails"""
+        await register_user(client, "dup@example.com", "testpass123", "First User")
+        response = await register_user(client, "dup@example.com", "testpass123", "Second User")
+        assert response.status_code == 400
+
+    async def test_login_user(self, client: AsyncClient):
         """Test user login"""
-        # First register
-        user_data = {
-            "email": "login@example.com",
-            "password": "testpass123",
-            "full_name": "Login User",
-            "phone": "+1234567890",
-            "role": "patient"
-        }
-        client.post("/api/auth/register", json=user_data)
-
-        # Then login
-        login_data = {
-            "username": "login@example.com",
-            "password": "testpass123"
-        }
-        response = client.post("/api/auth/login", data=login_data)
+        await register_user(client, "login@example.com", "testpass123", "Login User")
+        response = await client.post(
+            "/api/auth/login",
+            data={"username": "login@example.com", "password": "testpass123"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
 
+    async def test_login_wrong_password(self, client: AsyncClient):
+        """Test login with wrong password"""
+        await register_user(client, "wrongpass@example.com", "testpass123", "Wrong Pass User")
+        response = await client.post(
+            "/api/auth/login",
+            data={"username": "wrongpass@example.com", "password": "wrongpassword"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 401
+
+    async def test_login_nonexistent_user(self, client: AsyncClient):
+        """Test login with nonexistent email"""
+        response = await client.post(
+            "/api/auth/login",
+            data={"username": "noone@example.com", "password": "testpass123"},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert response.status_code == 401
+
+
+# --- Users Tests ---
+
+@pytest.mark.asyncio
+class TestUsers:
+    """Tests para endpoints de usuarios"""
+
+    async def test_get_current_user(self, client: AsyncClient):
+        """Test getting current user profile"""
+        await register_user(client, "me@example.com", "testpass123", "Me User")
+        token = await login_user(client, "me@example.com", "testpass123")
+
+        response = await client.get("/api/users/me", headers=auth_headers(token))
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == "me@example.com"
+        assert data["full_name"] == "Me User"
+
+    async def test_get_current_user_unauthorized(self, client: AsyncClient):
+        """Test that unauthenticated request to /me fails"""
+        response = await client.get("/api/users/me")
+        assert response.status_code in [401, 403]
+
+    async def test_get_kinesiologos_profiles_public(self, client: AsyncClient):
+        """Test public kinesiologo profiles endpoint (no auth required)"""
+        response = await client.get("/api/users/kinesiologos-profiles")
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+
+    async def test_update_current_user(self, client: AsyncClient):
+        """Test updating current user profile"""
+        await register_user(client, "update@example.com", "testpass123", "Before Update")
+        token = await login_user(client, "update@example.com", "testpass123")
+
+        response = await client.put(
+            "/api/users/me",
+            json={"full_name": "After Update"},
+            headers=auth_headers(token),
+        )
+        assert response.status_code == 200
+        assert response.json()["full_name"] == "After Update"
+
+
+# --- Appointments Tests ---
+
+@pytest.mark.asyncio
 class TestAppointments:
     """Tests para appointments"""
 
-    def test_create_appointment(self, client):
-        """Test appointment creation"""
-        # Register and login user
-        user_data = {
-            "email": "appt@example.com",
-            "password": "testpass123",
-            "full_name": "Appointment User",
-            "phone": "+1234567890",
-            "role": "patient"
-        }
-        client.post("/api/auth/register", json=user_data)
+    async def test_create_appointment(self, client: AsyncClient):
+        """Test appointment creation with proper seed data"""
+        # 1. Register a kinesiólogo (this also creates the Kinesiologo profile)
+        kin_resp = await register_user(
+            client, "kinesio@example.com", "testpass123", "Dr. Kinesio", role="kinesiologo"
+        )
+        assert kin_resp.status_code == 200
 
-        login_data = {
-            "username": "appt@example.com",
-            "password": "testpass123"
-        }
-        login_response = client.post("/api/auth/login", data=login_data)
-        token = login_response.json()["access_token"]
+        # 2. Register and login a patient
+        await register_user(client, "patient@example.com", "testpass123", "Patient User")
+        token = await login_user(client, "patient@example.com", "testpass123")
 
-        # Set auth header
-        client.headers = {"Authorization": f"Bearer {token}"}
-
-        # Create appointment (assuming kinesiologo_id=1 exists)
+        # 3. Create appointment with kinesiologo_id=1
         appointment_data = {
             "kinesiologo_id": 1,
-            "date": "2026-04-28T10:00:00",
-            "notes": "Test appointment"
+            "date": "2026-06-15T10:00:00",
+            "notes": "Test appointment",
+        }
+        response = await client.post(
+            "/api/appointments/",
+            json=appointment_data,
+            headers=auth_headers(token),
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["kinesiologo_id"] == 1
+        assert data["status"] == "pending"
+        assert data["notes"] == "Test appointment"
+        
+        import asyncio
+        await asyncio.sleep(0.2)  # Let background tasks finish
+
+    async def test_get_appointments(self, client: AsyncClient):
+        """Test listing appointments for authenticated user"""
+        await register_user(client, "listappt@example.com", "testpass123", "List User")
+        token = await login_user(client, "listappt@example.com", "testpass123")
+
+        response = await client.get("/api/appointments/", headers=auth_headers(token))
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+
+    async def test_get_available_slots(self, client: AsyncClient):
+        """Test available slots endpoint (public, no auth)"""
+        # Register a kinesiólogo so kinesiologo_id=1 exists
+        await register_user(client, "slots_kin@example.com", "testpass123", "Dr. Slots", role="kinesiologo")
+
+        response = await client.get("/api/appointments/available-slots/1?date=2026-06-15")
+        assert response.status_code == 200
+        data = response.json()
+        assert "available_slots" in data
+        assert len(data["available_slots"]) > 0
+
+    async def test_create_appointment_conflict(self, client: AsyncClient):
+        """Test that double-booking the same slot fails"""
+        # Setup kinesiologo
+        await register_user(client, "conflict_kin@example.com", "testpass123", "Dr. Conflict", role="kinesiologo")
+
+        # Setup patient
+        await register_user(client, "conflict_pat@example.com", "testpass123", "Conflict Patient")
+        token = await login_user(client, "conflict_pat@example.com", "testpass123")
+
+        appointment_data = {
+            "kinesiologo_id": 1,
+            "date": "2026-07-01T14:00:00",
+            "notes": "First booking",
         }
 
-        response = client.post("/api/appointments/", json=appointment_data)
-        # This might fail if no kinesiologos exist, but let's see
-        print(f"Appointment creation response: {response.status_code} - {response.text}")
-        # For now, just check that endpoint exists
-        assert response.status_code in [200, 400, 404, 500]  # Any response means endpoint works
+        # First booking should succeed
+        resp1 = await client.post("/api/appointments/", json=appointment_data, headers=auth_headers(token))
+        assert resp1.status_code == 200
+
+        # Second booking at same time should fail
+        appointment_data["notes"] = "Duplicate booking"
+        resp2 = await client.post("/api/appointments/", json=appointment_data, headers=auth_headers(token))
+        assert resp2.status_code == 400
+
+        import asyncio
+        await asyncio.sleep(0.2)  # Let background tasks finish
+
+
+# --- Health Check ---
+
+@pytest.mark.asyncio
+class TestHealthCheck:
+    async def test_health(self, client: AsyncClient):
+        """Test health check endpoint"""
+        response = await client.get("/health")
+        assert response.status_code == 200
+        assert response.json()["status"] == "healthy"
