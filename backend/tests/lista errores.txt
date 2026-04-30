@@ -143,3 +143,47 @@ PRIORIDADES DE RESOLUCIÓN (ordenadas por criticidad):
 4. ✅ COMPLETADO: Permitir vista pública de kinesiólogos en página de booking
 5. ✅ COMPLETADO: Mejorar manejo de errores de red en frontend
 6. ✅ COMPLETADO: Actualizar dependencias deprecated y resolver warnings
+
+=== ERRORES ADICIONALES IDENTIFICADOS (PENDIENTES DE CORRECCIÓN) ===
+
+14. FALTA DE SISTEMA DE MIGRACIONES DE BASE DE DATOS
+    Descripción: No se utiliza Alembic a pesar de estar en requirements.txt. Se usa create_all() en el startup, lo que impide actualizar el esquema sin borrar la base de datos.
+    Impacto: Riesgo de pérdida de datos en producción al actualizar modelos.
+    Importancia: Muy importante (crítico para despliegue continuo)
+    Dificultad: Moderadamente fácil (inicializar alembic y generar migrations)
+
+15. INTEGRACIONES MOCK EN PRODUCCIÓN
+    Descripción: Los módulos de pagos, notificaciones por email y SMS están en modo mock/desarrollo (escriben a disco).
+    Impacto: La aplicación no puede operar realmente con pacientes reales fuera de un entorno local.
+    Importancia: Crítica (impide salida a producción)
+    Dificultad: Moderadamente difícil (requiere configurar SMTP real, Twilio y pasarela de pago)
+
+16. VULNERABILIDAD XSS POR ALMACENAMIENTO DE TOKEN
+    Descripción: El JWT se guarda en localStorage del navegador.
+    Impacto: Si hay un ataque XSS, un atacante puede robar la sesión del usuario fácilmente.
+    Importancia: Moderadamente importante (estándar de seguridad)
+    Dificultad: Moderadamente difícil (migrar a cookies HttpOnly)
+
+17. PROMESA DE FUNCIONALIDAD NO CUMPLIDA (GOOGLE CALENDAR)
+    Descripción: La interfaz promete el envío de eventos de Google Calendar, pero el backend no tiene implementada la integración con la API de Google.
+    Impacto: Confusión del usuario y falta de funcionalidad prometida.
+    Importancia: Moderadamente importante (UX/Funcionalidad)
+    Dificultad: Difícil (requiere OAuth2 y Google Calendar API)
+
+18. FALTA DE VALIDACIÓN DE FORMATO EN CARGA DE EJERCICIOS
+    Descripción: El modal de carga de ejercicios no valida si la URL de YouTube es válida antes de enviarla al servidor.
+    Impacto: Posibles errores de visualización o videos rotos en el catálogo.
+    Importancia: Moderadamente importante (Calidad de datos)
+    Dificultad: Fácil (agregar regex de validación en frontend)
+
+19. AUSENCIA DE PERFIL DE USUARIO
+    Descripción: No existe una sección donde el usuario o kinesiologo pueda editar sus datos (email, teléfono, especialidad) o cambiar su contraseña.
+    Impacto: Usuarios quedan "atrapados" con sus datos de registro inicial.
+    Importancia: Importante (Funcionalidad básica)
+    Dificultad: Moderadamente fácil (crear endpoint y página de perfil)
+
+20. MANEJO DE SESIÓN EN MAIN.PY (SYNC/ASYNC)
+    Descripción: Se crea un engine síncrono temporal en main.py solo para ejecutar create_all, mezclando patrones sync y async de forma desprolija.
+    Impacto: Código difícil de mantener y propenso a errores de conexión.
+    Importancia: Menos importante (Deuda técnica)
+    Dificultad: Fácil (unificar a async)
