@@ -1,0 +1,16 @@
+To: 3511245678
+
+
+Hola paciente,
+
+Tu turno ha sido cancelado:
+
+📅 Fecha: 27/04/2026
+⏰ Hora: 10:00
+👨‍⚕️ Kinesiólogo: doctor
+
+
+Puedes reservar un nuevo turno desde nuestra plataforma.
+
+Saludos,
+Equipo KineMov

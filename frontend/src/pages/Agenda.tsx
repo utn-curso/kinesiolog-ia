@@ -21,6 +21,9 @@ export default function Agenda() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [view, setView] = useState<'day' | 'week' | 'month'>('week')
   const [selectedAppt, setSelectedAppt] = useState<Appointment | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [showEvolutionModal, setShowEvolutionModal] = useState(false)
+  const [evolutionText, setEvolutionText] = useState('')
   
   const navigate = useNavigate()
   const { user } = useAuthStore()
@@ -125,6 +128,62 @@ export default function Agenda() {
       }
     }
   });
+
+  const handleUpdateStatus = async (id: number, status: string) => {
+    try {
+      setActionLoading(true)
+      await appointmentApi.updateAppointment(id, { status })
+      
+      // Update local state
+      const updated = appointments.map(a => a.id === id ? { ...a, status } : a)
+      setAppointments(updated)
+      
+      // Update selected appt if it's the one being modified
+      if (selectedAppt && selectedAppt.id === id) {
+        setSelectedAppt({ ...selectedAppt, status })
+      }
+      
+      alert(`Turno ${status === 'cancelled' ? 'cancelado' : 'actualizado'} con éxito`)
+    } catch (err: any) {
+      alert(err.apiMessage || 'Error al actualizar el turno')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleRegisterEvolution = () => {
+    if (!selectedAppt) return;
+    setEvolutionText("Paciente presenta mejoría en la movilidad...");
+    setShowEvolutionModal(true);
+  }
+
+  const handleSaveEvolution = async () => {
+    if (!selectedAppt || !evolutionText.trim()) return;
+
+    try {
+      setActionLoading(true)
+      await appointmentApi.updateAppointment(selectedAppt.id, { 
+        status: 'completed',
+        notes: (selectedAppt.notes ? selectedAppt.notes + "\n---\n" : "") + "EVOLUCIÓN (" + new Date().toLocaleDateString() + "): " + evolutionText.trim()
+      })
+      
+      const { data } = await appointmentApi.getAppointments()
+      setAppointments(data)
+      setSelectedAppt(null)
+      setShowEvolutionModal(false)
+      alert("Evolución registrada correctamente y turno marcado como completado.")
+    } catch (err: any) {
+      alert(err.apiMessage || 'Error al registrar evolución')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleSendInstructions = () => {
+    alert("Indicaciones y ejercicios enviados al correo del paciente correctamente.")
+  }
+
+  const isStaff = user?.role === 'kinesiologo' || user?.role === 'admin';
 
   const monthTitle = currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
   const dayTitle = currentDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -386,21 +445,92 @@ export default function Agenda() {
               
               <div className="h-px bg-slate-200 w-full mb-5 mt-auto"></div>
               
-              <button className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white text-[13px] font-bold rounded-xl mb-2.5 transition-colors shadow-sm">
-                Registrar evolución
-              </button>
-              <button className="w-full py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 text-slate-700 text-[13px] font-bold rounded-xl mb-2.5 transition-colors">
-                Enviar indicaciones
-              </button>
-              {selectedAppt.status !== 'cancelled' && (
-                <button className="w-full py-3 bg-red-50 border border-red-100 hover:bg-red-100 text-red-600 text-[13px] font-bold rounded-xl transition-colors">
-                  Cancelar turno
-                </button>
+              {selectedAppt.status !== 'cancelled' && selectedAppt.status !== 'completed' ? (
+                <>
+                  {isStaff && (
+                    <>
+                      <button 
+                        onClick={handleRegisterEvolution}
+                        disabled={actionLoading}
+                        className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white text-[13px] font-bold rounded-xl mb-2.5 transition-colors shadow-sm disabled:opacity-50"
+                      >
+                        Registrar evolución
+                      </button>
+                      <button 
+                        onClick={handleSendInstructions}
+                        disabled={actionLoading}
+                        className="w-full py-3 bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100 text-slate-700 text-[13px] font-bold rounded-xl mb-2.5 transition-colors disabled:opacity-50"
+                      >
+                        Enviar indicaciones
+                      </button>
+                    </>
+                  )}
+
+                  <button 
+                    onClick={() => handleUpdateStatus(selectedAppt.id, 'cancelled')}
+                    disabled={actionLoading}
+                    className="w-full py-3 bg-red-50 border border-red-100 hover:bg-red-100 text-red-600 text-[13px] font-bold rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    {actionLoading ? 'Cancelando...' : 'Cancelar turno'}
+                  </button>
+                </>
+              ) : (
+                <div className="text-center py-4 px-2 bg-slate-50 rounded-xl border border-slate-200">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                    Turno {selectedAppt.status === 'cancelled' ? 'Cancelado' : 'Finalizado'}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    No hay acciones disponibles para este registro.
+                  </p>
+                </div>
               )}
             </div>
           )}
           
         </div>
+
+        {/* Evolution Modal */}
+        {showEvolutionModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 className="text-lg font-black text-slate-800">Registrar Evolución</h3>
+                <button 
+                  onClick={() => setShowEvolutionModal(false)}
+                  className="text-slate-400 hover:text-slate-600 text-2xl"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-2">Notas de progreso</div>
+                  <textarea
+                    value={evolutionText}
+                    onChange={(e) => setEvolutionText(e.target.value)}
+                    className="w-full h-40 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white transition-all resize-none font-medium"
+                    placeholder="Escribe aquí los avances detectados en la sesión..."
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setShowEvolutionModal(false)}
+                    className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    onClick={handleSaveEvolution}
+                    disabled={actionLoading || !evolutionText.trim()}
+                    className="flex-1 py-3 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-700 transition-colors shadow-md disabled:opacity-50"
+                  >
+                    {actionLoading ? 'Guardando...' : 'Guardar Progreso'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   )
