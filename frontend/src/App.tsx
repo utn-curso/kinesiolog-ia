@@ -5,6 +5,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Booking from './pages/Booking'
 import Agenda from './pages/Agenda'
+import { Pacientes } from './pages/Pacientes'
+import { Ejercicios } from './pages/Ejercicios'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -23,6 +25,16 @@ function App() {
         <Route path="/agenda" element={
           <ProtectedRoute>
             <Agenda />
+          </ProtectedRoute>
+        } />
+        <Route path="/pacientes" element={
+          <ProtectedRoute>
+            <Pacientes />
+          </ProtectedRoute>
+        } />
+        <Route path="/ejercicios" element={
+          <ProtectedRoute>
+            <Ejercicios />
           </ProtectedRoute>
         } />
       </Routes>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { AdminLayout } from '../components/AdminLayout'
 import { appointmentApi } from '../services/api'
 import { useAuthStore } from '../context/auth'
+import { AddExerciseModal } from '../components/AddExerciseModal'
 
 interface Appointment {
   id: number;
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('month')
+  const [showExerciseModal, setShowExerciseModal] = useState(false)
   
   const user = useAuthStore(state => state.user)
 
@@ -314,7 +316,10 @@ export default function Dashboard() {
                 <div className="text-xl mb-1">🩺</div>
                 <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Nuevo kinesiólogo</div>
               </button>
-              <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
+              <button 
+                onClick={() => setShowExerciseModal(true)}
+                className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group"
+              >
                 <div className="text-xl mb-1">🏋️</div>
                 <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Agregar ejercicio</div>
               </button>
@@ -368,6 +373,16 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {showExerciseModal && (
+        <AddExerciseModal 
+          onClose={() => setShowExerciseModal(false)}
+          onSuccess={() => {
+            // Optional: you could refresh dashboard data here if exercises were shown
+            console.log('Exercise added successfully from dashboard');
+          }}
+        />
+      )}
     </AdminLayout>
   )
 }

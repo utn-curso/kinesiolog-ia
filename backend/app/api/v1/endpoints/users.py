@@ -66,6 +66,24 @@ async def read_kinesiologos(
     return kinesiologos
 
 
+@router.get("/pacientes", response_model=list[UserSchema])
+async def read_pacientes(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get list of patients (kinesiologo and admin only)"""
+    if current_user.role not in ["kinesiologo", "admin"]:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    result = await db.execute(
+        select(User).where(User.role == "patient").offset(skip).limit(limit)
+    )
+    patients = result.scalars().all()
+    return patients
+
+
 @router.get("/kinesiologos-profiles")
 async def read_kinesiologos_profiles(
     db: AsyncSession = Depends(get_db)

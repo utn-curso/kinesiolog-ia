@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
     # Create tables (ensure all models are imported)
     from sqlalchemy import create_engine
-    from app.models import user, appointment, notification
+    from app.models import user, appointment, notification, exercise
     sync_engine = create_engine(settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", ""))
     user.Base.metadata.create_all(bind=sync_engine)
     sync_engine.dispose()

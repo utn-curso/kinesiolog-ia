@@ -9,17 +9,20 @@ from app.config import settings
 from app.models.user import User, Kinesiologo
 from app.schemas.user import UserCreate
 
-from passlib.context import CryptContext
-
-pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
+import bcrypt
+from passlib.hash import pbkdf2_sha256
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash"""
-    return pwd_context.verify(plain_password[:72], hashed_password)
+    # Check if it's an old bcrypt hash
+    if hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$"):
+        return bcrypt.checkpw(plain_password[:72].encode('utf-8'), hashed_password.encode('utf-8'))
+    # Otherwise, it's pbkdf2_sha256
+    return pbkdf2_sha256.verify(plain_password[:72], hashed_password)
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password[:72])
+    """Hash a password (new passwords always use pbkdf2_sha256)"""
+    return pbkdf2_sha256.hash(password[:72])
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
