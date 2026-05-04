@@ -1,17 +1,16 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import api, { getApiErrorMessage } from '../services/api'
 
 interface User {
   id: number
   email: string
   full_name: string
+  phone?: string | null
   role: string
 }
 
 interface AuthState {
   user: User | null
-  token: string | null
   isLoading: boolean
   error: string | null
   login: (email: string, password: string) => Promise<void>
@@ -20,11 +19,8 @@ interface AuthState {
   checkAuth: () => Promise<void>
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
+export const useAuthStore = create<AuthState>()((set, get) => ({
       user: null,
-      token: null,
       isLoading: false,
       error: null,
 
@@ -35,16 +31,14 @@ export const useAuthStore = create<AuthState>()(
           formData.append('username', email)
           formData.append('password', password)
 
-          const response = await api.post('/auth/login', formData, {
+          await api.post('/auth/login', formData, {
             headers: {
               'Content-Type': 'application/x-www-form-urlencoded',
             },
           })
 
-          const { access_token } = response.data
-          localStorage.setItem('token', access_token)
-          set({ token: access_token, isLoading: false })
           await get().checkAuth()
+          set({ isLoading: false })
         } catch (error: any) {
           const errorMessage = getApiErrorMessage(error)
           set({ isLoading: false, error: errorMessage })
@@ -65,26 +59,16 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('token')
-        set({ user: null, token: null, error: null })
+        api.post('/auth/logout').catch(() => {})
+        set({ user: null, error: null })
       },
 
       checkAuth: async () => {
-        const token = localStorage.getItem('token')
-        if (!token) return
-
         try {
-          const response = await api.get('/users/me')
-          set({ user: response.data, token, error: null })
+          const response = await api.get('/users/me', { skipAuthRedirect: true } as any)
+          set({ user: response.data, error: null })
         } catch (error) {
-          localStorage.removeItem('token')
-          set({ user: null, token: null, error: null })
+          set({ user: null, error: null })
         }
       },
-    }),
-    {
-      name: 'auth-storage',
-      partialize: (state) => ({ token: state.token }),
-    }
-  )
-)
+}))

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AdminLayout } from '../components/AdminLayout';
 import api from '../services/api';
-import { Play, Plus, Trash2, Search, AlertCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Plus, Trash2, Search, AlertCircle, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../context/auth';
 import { AddExerciseModal } from '../components/AddExerciseModal';
 
@@ -24,14 +24,6 @@ export function Ejercicios() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTreatment, setSelectedTreatment] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    treatment: '',
-    body_part: '',
-    description: '',
-    youtube_url: '',
-  });
-  const [submitting, setSubmitting] = useState(false);
   const [expandedExerciseId, setExpandedExerciseId] = useState<number | null>(null);
 
   // Treatments list
@@ -44,20 +36,6 @@ export function Ejercicios() {
     'Estiramientos',
     'Fortalecimiento',
     'Movilidad articular',
-  ];
-
-  // Body parts list
-  const bodyParts = [
-    'Espalda',
-    'Hombro',
-    'Rodilla',
-    'Cadera',
-    'Cuello',
-    'Tobillo',
-    'Codo',
-    'Muñeca',
-    'Pie',
-    'Pelvis',
   ];
 
   useEffect(() => {

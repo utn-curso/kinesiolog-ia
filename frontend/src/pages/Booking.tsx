@@ -45,10 +45,7 @@ export default function Booking() {
     // Solo requerir autenticación para confirmar la reserva
     const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem('token')
-        if (token) {
-          await checkAuth()
-        }
+        await checkAuth()
       } catch (error) {
         // No redirigir a login, permitir vista pública
         console.log('Usuario no autenticado, permitiendo vista pública')

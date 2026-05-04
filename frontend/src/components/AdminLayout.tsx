@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../context/auth';
 
 interface AdminLayoutProps {
@@ -37,9 +37,9 @@ export function AdminLayout({ children, pageTitle = 'Dashboard', topbarRight }: 
     <div className="flex min-h-screen bg-slate-100 font-sans text-slate-900">
       {/* SIDEBAR */}
       <div className="w-[220px] bg-slate-900 flex flex-col shrink-0">
-        <div className="px-5 py-5 text-[17px] font-black text-white border-b border-white/10">
+        <Link to="/" className="px-5 py-5 text-[17px] font-black text-white border-b border-white/10 hover:text-teal-200 transition-colors">
           Kine<span className="text-teal-50">Mov</span>
-        </div>
+        </Link>
         
         <div className="px-5 pt-4 pb-2 text-[10px] font-extrabold text-white/30 tracking-widest uppercase">
           Principal
@@ -49,6 +49,9 @@ export function AdminLayout({ children, pageTitle = 'Dashboard', topbarRight }: 
         </NavLink>
         <NavLink to="/agenda" className={navItemClass}>
           <span className="text-sm">📅</span> Turnos
+        </NavLink>
+        <NavLink to="/profile" className={navItemClass}>
+          <span className="text-sm">👤</span> Perfil
         </NavLink>
         {(user?.role === 'kinesiologo' || user?.role === 'admin') && (
           <NavLink to="/pacientes" className={navItemClass}>
@@ -72,9 +75,11 @@ export function AdminLayout({ children, pageTitle = 'Dashboard', topbarRight }: 
         <NavLink to="/ejercicios" className={navItemClass}>
           <span className="text-sm">🏋️</span> Catálogo Ejercicios
         </NavLink>
-        <NavLink to="/reportes" className={navItemClass}>
-          <span className="text-sm">📋</span> Reportes
-        </NavLink>
+        {(user?.role === 'kinesiologo' || user?.role === 'admin') && (
+          <NavLink to="/reportes" className={navItemClass}>
+            <span className="text-sm">📋</span> Reportes
+          </NavLink>
+        )}
 
         <div className="mt-auto px-4 py-4 border-t border-white/10 flex items-center justify-between group">
           <div className="flex items-center gap-2 overflow-hidden">

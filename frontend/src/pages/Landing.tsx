@@ -1,8 +1,34 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { Button } from '../components/Button'
+import { userApi } from '../services/api'
+
+interface Kinesiologo {
+  kinesiologo_id: number
+  user_id: number
+  full_name: string
+  email: string
+  specialty: string | null
+}
 
 export default function Landing() {
+  const [kinesiologos, setKinesiologos] = useState<Kinesiologo[]>([])
+
+  useEffect(() => {
+    const loadKinesiologos = async () => {
+      try {
+        const response = await userApi.getKinesiologosProfiles()
+        setKinesiologos(response.data.slice(0, 3)) // Máximo 3
+      } catch (error) {
+        console.error('Error loading kinesiologos:', error)
+        setKinesiologos([])
+      }
+    }
+    loadKinesiologos()
+  }, [])
+
+  const colors = ['from-teal-600 to-teal-400', 'from-blue-600 to-blue-400', 'from-orange-500 to-orange-300']
   return (
     <Layout>
       {/* Hero Section */}
@@ -23,9 +49,13 @@ export default function Landing() {
               <Link to="/booking">
                 <Button className="px-8 py-4 text-base shadow-lg shadow-teal-100">Reservar Turno</Button>
               </Link>
-              <Link to="/login">
-                <Button variant="secondary" className="px-8 py-4 text-base">Ver Servicios</Button>
-              </Link>
+              <Button
+                variant="secondary"
+                className="px-8 py-4 text-base"
+                onClick={() => document.getElementById('servicios')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Ver Servicios
+              </Button>
             </div>
           </div>
 
@@ -53,7 +83,7 @@ export default function Landing() {
       </section>
 
       {/* Services Section */}
-      <section className="py-24 bg-slate-50">
+      <section id="servicios" className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">Nuestros Servicios</h2>
@@ -82,33 +112,34 @@ export default function Landing() {
       </section>
 
       {/* Team Section */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">Nuestro Equipo</h2>
-            <p className="text-slate-500 max-w-2xl mx-auto font-medium">Profesionales matriculados con años de experiencia dedicados a tu salud.</p>
-          </div>
+      {kinesiologos.length > 0 && (
+        <section className="py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">Nuestro Equipo</h2>
+              <p className="text-slate-500 max-w-2xl mx-auto font-medium">Profesionales matriculados con años de experiencia dedicados a tu salud.</p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { name: 'Lic. María Acosta', esp: 'Traumatología', desc: '10 años de experiencia en rehabilitación post-quirúrgica y deportiva.', initial: 'MA', color: 'from-teal-600 to-teal-400' },
-              { name: 'Lic. Juan Rodríguez', esp: 'Neurológica', desc: 'Especialista en patologías neurológicas y rehabilitación funcional compleja.', initial: 'JR', color: 'from-blue-600 to-blue-400' },
-              { name: 'Lic. Sofía Vega', esp: 'Pilates', desc: 'Instructora certificada en Pilates terapéutico y kinesiología deportiva.', initial: 'SV', color: 'from-orange-500 to-orange-300' },
-            ].map((pro, i) => (
-              <div key={i} className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-100 hover:shadow-lg transition-shadow">
-                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${pro.color} flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-md`}>
-                  {pro.initial}
-                </div>
-                <h4 className="text-lg font-bold text-slate-900 mb-2">{pro.name}</h4>
-                <span className="inline-block bg-teal-100 text-teal-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4">
-                  {pro.esp}
-                </span>
-                <p className="text-slate-500 text-sm leading-relaxed">{pro.desc}</p>
-              </div>
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {kinesiologos.map((kine, i) => {
+                const initials = kine.full_name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+                return (
+                  <div key={kine.kinesiologo_id} className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-100 hover:shadow-lg transition-shadow">
+                    <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-md`}>
+                      {initials}
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-900 mb-2">{kine.full_name}</h4>
+                    <span className="inline-block bg-teal-100 text-teal-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4">
+                      {kine.specialty || 'General'}
+                    </span>
+                    <p className="text-slate-500 text-sm leading-relaxed">Profesional especializado en kinesiología con experiencia en tratamientos personalizados.</p>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Contact Section */}
       <section className="py-24 bg-slate-900 text-white">
@@ -142,12 +173,15 @@ export default function Landing() {
               </div>
             </div>
           </div>
-          <div className="h-[400px] bg-slate-800 rounded-3xl border border-white/10 flex items-center justify-center relative overflow-hidden group">
-            <div className="absolute inset-0 opacity-20 bg-[url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i1024!3i1536!2m3!1e0!2sm!3i388172593!3m8!2ses!3sAR!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2!23i1301875')] bg-cover"></div>
-            <div className="relative z-10 text-center">
-              <div className="text-4xl mb-4 transform group-hover:scale-125 transition-transform">📍</div>
-              <div className="bg-white text-slate-900 px-6 py-2 rounded-full font-bold text-sm shadow-xl">Google Maps — KineMov</div>
-            </div>
+          <div className="rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+            <iframe
+              title="KineMov - Google Maps"
+              src="https://www.google.com/maps?q=Av.+Col%C3%B3n+1234,+Mar+del+Plata,+Argentina&output=embed"
+              className="w-full h-[400px]"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
         </div>
       </section>
@@ -164,4 +198,4 @@ export default function Landing() {
       </footer>
     </Layout>
   )
-}
+}

@@ -96,33 +96,42 @@ export default function Dashboard() {
                       </td>
                     </tr>
                   ) : (
-                    appointments.map(app => (
-                      <tr key={app.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
-                        <td className="px-5 py-3.5">
-                          <div className="text-[13px] font-bold text-slate-800">
-                            {new Date(app.date).toLocaleDateString('es-AR', {weekday: 'long', day: '2-digit', month: 'long'})}
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-medium mt-0.5">
-                            {new Date(app.date).toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})} hs
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5 text-[13px] font-medium text-slate-600">
-                          {app.kinesiologo?.user?.full_name || 'Kinesiólogo asignado'}
-                        </td>
-                        <td className="px-5 py-3.5">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize ${
-                            app.status === 'confirmed' ? 'bg-green-50 text-green-600 border border-green-100' :
-                            app.status === 'pending' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                            'bg-red-50 text-red-600 border border-red-100'
-                          }`}>
-                            {app.status === 'confirmed' ? 'Confirmado' : app.status === 'pending' ? 'Pendiente' : 'Cancelado'}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3.5 text-[12px] text-slate-500 max-w-[200px] truncate">
-                          {app.notes || '-'}
-                        </td>
-                      </tr>
-                    ))
+                    appointments.map(app => {
+                      const appointmentDate = new Date(app.date)
+                      const isPastPending = app.status === 'pending' && appointmentDate < new Date()
+                      const statusLabel = isPastPending ? 'Perdido' : app.status === 'confirmed' ? 'Confirmado' : app.status === 'pending' ? 'Pendiente' : 'Cancelado'
+                      const statusClass = isPastPending
+                        ? 'bg-red-50 text-red-600 border border-red-100'
+                        : app.status === 'confirmed'
+                          ? 'bg-green-50 text-green-600 border border-green-100'
+                          : app.status === 'pending'
+                            ? 'bg-orange-50 text-orange-600 border border-orange-100'
+                            : 'bg-red-50 text-red-600 border border-red-100'
+
+                      return (
+                        <tr key={app.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
+                          <td className="px-5 py-3.5">
+                            <div className="text-[13px] font-bold text-slate-800">
+                              {appointmentDate.toLocaleDateString('es-AR', {weekday: 'long', day: '2-digit', month: 'long'})}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                              {appointmentDate.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'})} hs
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-[13px] font-medium text-slate-600">
+                            {app.kinesiologo?.user?.full_name || 'Kinesiólogo asignado'}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold capitalize ${statusClass}`}>
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-[12px] text-slate-500 max-w-[200px] truncate">
+                            {app.notes || '-'}
+                          </td>
+                        </tr>
+                      )
+                    })
                   )}
                 </tbody>
               </table>
@@ -134,8 +143,8 @@ export default function Dashboard() {
   }
 
   // Admin / Kinesiologo Dashboard View
-  const monthData = [420, 510, 380, 620, 590, 480, 667];
-  const monthLabels = ['Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb', 'Mar'];
+  const monthData = [590, 480, 667, 720, 650];
+  const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May'];
   
   const weekData = [85, 92, 78, 110, 95, 102, 120];
   const weekLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -194,7 +203,7 @@ export default function Dashboard() {
         </div>
 
         {/* STATS ROW */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
             <div className="flex justify-between items-start mb-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-teal-50">📅</div>
@@ -204,14 +213,6 @@ export default function Dashboard() {
               {timeRange === 'month' ? totalMonth : totalWeek}
             </div>
             <div className="text-xs text-slate-500 font-bold mt-1">Turnos {timeRange === 'month' ? 'del mes' : 'esta semana'}</div>
-          </div>
-          <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
-            <div className="flex justify-between items-start mb-3">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-orange-50">💰</div>
-              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 12%</span>
-            </div>
-            <div className="text-3xl font-black leading-none text-slate-800">{timeRange === 'month' ? '$667K' : '$120K'}</div>
-            <div className="text-xs text-slate-500 font-bold mt-1">Ingresos {timeRange === 'month' ? 'mensuales' : 'semanales'}</div>
           </div>
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
             <div className="flex justify-between items-start mb-3">
@@ -312,10 +313,6 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <h3 className="text-[15px] font-extrabold text-slate-800 mb-4">Acciones rápidas</h3>
             <div className="grid grid-cols-2 gap-3">
-              <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
-                <div className="text-xl mb-1">🩺</div>
-                <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Nuevo kinesiólogo</div>
-              </button>
               <button 
                 onClick={() => setShowExerciseModal(true)}
                 className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group"
