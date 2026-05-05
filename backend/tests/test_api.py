@@ -86,6 +86,23 @@ def auth_headers(token: str) -> dict:
     return {"Authorization": f"Bearer {token}"}
 
 
+async def seed_kinesiologo_day_slot(
+    client: AsyncClient, token: str, day: str, start_h: int = 8, end_h: int = 18
+) -> None:
+    """One availability block covering most of a calendar day (duration multiple of 60 min)."""
+    await client.post(
+        "/api/time-slots/me",
+        json={
+            "start_time": day,
+            "end_time": day,
+            "start_hour": f"{start_h:02d}:00:00",
+            "end_hour": f"{end_h:02d}:00:00",
+            "is_available": True,
+        },
+        headers=auth_headers(token),
+    )
+
+
 # --- Auth Tests ---
 
 @pytest.mark.asyncio
@@ -196,6 +213,9 @@ class TestAppointments:
         )
         assert kin_resp.status_code == 200
 
+        kin_token = await login_user(client, "kinesio@example.com", "testpass123")
+        await seed_kinesiologo_day_slot(client, kin_token, "2026-06-15", 8, 18)
+
         # 2. Register and login a patient
         await register_user(client, "patient@example.com", "testpass123", "Patient User")
         token = await login_user(client, "patient@example.com", "testpass123")
@@ -231,8 +251,10 @@ class TestAppointments:
 
     async def test_get_available_slots(self, client: AsyncClient):
         """Test available slots endpoint (public, no auth)"""
-        # Register a kinesiólogo so kinesiologo_id=1 exists
         await register_user(client, "slots_kin@example.com", "testpass123", "Dr. Slots", role="kinesiologo")
+
+        slots_kin_token = await login_user(client, "slots_kin@example.com", "testpass123")
+        await seed_kinesiologo_day_slot(client, slots_kin_token, "2026-06-15", 9, 17)
 
         response = await client.get("/api/appointments/available-slots/1?date=2026-06-15")
         assert response.status_code == 200
@@ -242,8 +264,9 @@ class TestAppointments:
 
     async def test_create_appointment_conflict(self, client: AsyncClient):
         """Test that double-booking the same slot fails"""
-        # Setup kinesiologo
         await register_user(client, "conflict_kin@example.com", "testpass123", "Dr. Conflict", role="kinesiologo")
+        ck_token = await login_user(client, "conflict_kin@example.com", "testpass123")
+        await seed_kinesiologo_day_slot(client, ck_token, "2026-07-01", 8, 18)
 
         # Setup patient
         await register_user(client, "conflict_pat@example.com", "testpass123", "Conflict Patient")
@@ -266,6 +289,117 @@ class TestAppointments:
 
         import asyncio
         await asyncio.sleep(0.2)  # Let background tasks finish
+
+
+# --- Time slots (kinesiologo availability) ---
+
+@pytest.mark.asyncio
+class TestTimeSlots:
+    async def test_patient_forbidden_time_slots(self, client: AsyncClient):
+        await register_user(client, "ts_pat@example.com", "testpass123", "Patient TS")
+        token = await login_user(client, "ts_pat@example.com", "testpass123")
+        r = await client.post(
+            "/api/time-slots/me",
+            json={
+                "start_time": "2026-08-01",
+                "end_time": "2026-08-01",
+                "start_hour": "09:00:00",
+                "end_hour": "10:00:00",
+            },
+            headers=auth_headers(token),
+        )
+        assert r.status_code == 403
+
+    async def test_kinesiologo_rejects_non_multiple_duration(self, client: AsyncClient):
+        await register_user(client, "ts_kin_bad@example.com", "testpass123", "Dr. BadDur", role="kinesiologo")
+        token = await login_user(client, "ts_kin_bad@example.com", "testpass123")
+        r = await client.post(
+            "/api/time-slots/me",
+            json={
+                "start_time": "2026-08-01",
+                "end_time": "2026-08-01",
+                "start_hour": "09:00:00",
+                "end_hour": "09:45:00",
+            },
+            headers=auth_headers(token),
+        )
+        assert r.status_code == 400
+
+    async def test_kinesiologo_crud_list(self, client: AsyncClient):
+        await register_user(client, "ts_kin_ok@example.com", "testpass123", "Dr. CRUD", role="kinesiologo")
+        token = await login_user(client, "ts_kin_ok@example.com", "testpass123")
+        r_create = await client.post(
+            "/api/time-slots/me",
+            json={
+                "start_time": "2026-09-02",
+                "end_time": "2026-09-02",
+                "start_hour": "09:00:00",
+                "end_hour": "12:00:00",
+            },
+            headers=auth_headers(token),
+        )
+        assert r_create.status_code == 200
+        slot_id = r_create.json()["id"]
+        r_list = await client.get("/api/time-slots/me", headers=auth_headers(token))
+        assert r_list.status_code == 200
+        assert len(r_list.json()) >= 1
+        r_del = await client.delete(f"/api/time-slots/me/{slot_id}", headers=auth_headers(token))
+        assert r_del.status_code == 200
+
+    async def test_two_non_overlapping_slots_second_succeeds(self, client: AsyncClient):
+        """Segunda franja sin solapamiento debe persistir (aware vs naive en overlap)."""
+        await register_user(client, "ts_two_slot@example.com", "testpass123", "Dr. TwoSlot", role="kinesiologo")
+        token = await login_user(client, "ts_two_slot@example.com", "testpass123")
+        r1 = await client.post(
+            "/api/time-slots/me",
+            json={
+                "start_time": "2026-05-11",
+                "end_time": "2026-05-15",
+                "start_hour": "09:00:00",
+                "end_hour": "16:00:00",
+                "is_available": True,
+            },
+            headers=auth_headers(token),
+        )
+        assert r1.status_code == 200, r1.text
+        r2 = await client.post(
+            "/api/time-slots/me",
+            json={
+                "start_time": "2026-05-18",
+                "end_time": "2026-05-18",
+                "start_hour": "09:00:00",
+                "end_hour": "17:00:00",
+                "is_available": True,
+            },
+            headers=auth_headers(token),
+        )
+        assert r2.status_code == 200, r2.text
+
+    async def test_cannot_delete_slot_with_booked_appointment(self, client: AsyncClient):
+        await register_user(client, "ts_book_kin@example.com", "testpass123", "Dr. Booked", role="kinesiologo")
+        kin_t = await login_user(client, "ts_book_kin@example.com", "testpass123")
+        await seed_kinesiologo_day_slot(client, kin_t, "2026-10-10", 8, 12)
+
+        await register_user(client, "ts_book_pat@example.com", "testpass123", "Pat Booked")
+        pat_t = await login_user(client, "ts_book_pat@example.com", "testpass123")
+        apt = await client.post(
+            "/api/appointments/",
+            json={
+                "kinesiologo_id": 1,
+                "date": "2026-10-10T09:00:00",
+                "notes": "Block delete",
+            },
+            headers=auth_headers(pat_t),
+        )
+        assert apt.status_code == 200
+
+        r_list = await client.get("/api/time-slots/me", headers=auth_headers(kin_t))
+        assert r_list.status_code == 200
+        slots = r_list.json()
+        assert slots
+        slot_id = slots[0]["id"]
+        r_del = await client.delete(f"/api/time-slots/me/{slot_id}", headers=auth_headers(kin_t))
+        assert r_del.status_code == 409
 
 
 # --- Health Check ---

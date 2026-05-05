@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # Environment
     environment: str = "development"
 
+    # Cuando está activo, al arrancar la API se ejecuta create_all() según los modelos
+    # (tablas nuevas y columnas nuevas donde SQLAlchemy lo permita). Desactívalo en
+    # producción si usas migraciones formales (Alembic).
+    sync_db_schema_on_startup: bool = True
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Try to use PostgreSQL if available, otherwise fallback to SQLite

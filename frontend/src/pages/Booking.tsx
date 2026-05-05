@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../context/auth'
 import { Layout } from '../components/Layout'
@@ -19,12 +19,21 @@ interface Slot {
   datetime: string
 }
 
+/** ISO sin sufijo Z (hora local del servidor/kinesiólogo): evita desfasar al interpretar como UTC. */
+function parseSlotLocal(iso: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/.exec(iso.trim())
+  if (!m) return new Date(iso)
+  const sec = m[6] != null ? Number(m[6]) : 0
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), sec)
+}
+
 export default function Booking() {
   const [kinesiologos, setKinesiologos] = useState<Kinesiologo[]>([])
   const [selectedKinesiologo, setSelectedKinesiologo] = useState<number | null>(null)
   const [selectedTreatment, setSelectedTreatment] = useState<string>('Rehabilitación física')
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([])
+  const [appointmentDurationMin, setAppointmentDurationMin] = useState(60)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
   const [notes, setNotes] = useState<string>('')
   const [loading, setLoading] = useState(false)
@@ -87,10 +96,50 @@ export default function Booking() {
   }, [user])
 
   useEffect(() => {
+    setSelectedSlot(null)
+  }, [selectedKinesiologo, selectedDate])
+
+  const loadAvailableSlots = useCallback(async () => {
+    if (!selectedKinesiologo || !selectedDate) return
+    setLoading(true)
+    try {
+      const response = await appointmentApi.getAvailableSlots(selectedKinesiologo, selectedDate)
+      const slots = response.data.available_slots as string[]
+      setAvailableSlots(slots.map((slot: string) => ({ datetime: slot })))
+      setAppointmentDurationMin(response.data.appointment_duration_minutes ?? 60)
+      setSelectedSlot((prev) => (prev && slots.includes(prev) ? prev : null))
+      setError('')
+    } catch (error: any) {
+      setError(error.apiMessage || error.message || 'Error al cargar los horarios disponibles.')
+      setAvailableSlots([])
+      setSelectedSlot(null)
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedKinesiologo, selectedDate])
+
+  useEffect(() => {
     if (selectedKinesiologo && selectedDate) {
       loadAvailableSlots()
     }
-  }, [selectedKinesiologo, selectedDate])
+  }, [selectedKinesiologo, selectedDate, loadAvailableSlots])
+
+  /** Al volver a la pestaña, actualizar huecos (otro usuario pudo reservar). */
+  useEffect(() => {
+    if (step !== 2) return
+    const refresh = () => {
+      if (selectedKinesiologo && selectedDate) loadAvailableSlots()
+    }
+    const onVis = () => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [step, selectedKinesiologo, selectedDate, loadAvailableSlots])
 
   const loadKinesiologos = async () => {
     try {
@@ -99,21 +148,6 @@ export default function Booking() {
       setError('')
     } catch (error: any) {
       setError(error.apiMessage || error.message || 'Error al cargar los kinesiólogos.')
-    }
-  }
-
-  const loadAvailableSlots = async () => {
-    if (!selectedKinesiologo || !selectedDate) return
-    setLoading(true)
-    try {
-      const response = await appointmentApi.getAvailableSlots(selectedKinesiologo, selectedDate)
-      setAvailableSlots(response.data.available_slots.map((slot: string) => ({ datetime: slot })))
-      setError('')
-    } catch (error: any) {
-      setError(error.apiMessage || error.message || 'Error al cargar los horarios disponibles.')
-      setAvailableSlots([])
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -286,7 +320,16 @@ export default function Booking() {
         {step === 2 && (
           <Card className="p-8 animate-fade-in shadow-xl shadow-slate-100 border-slate-100">
             <h3 className="text-xl font-black text-slate-900 mb-1">Seleccioná fecha y horario</h3>
-            <p className="text-sm text-slate-500 mb-8">Los horarios disponibles se actualizan según el profesional</p>
+            <p className="text-sm text-slate-500 mb-2">
+              Los horarios salen de la disponibilidad que cargó el kinesiólogo, en{' '}
+              <span className="font-bold text-slate-700">bloques de 1 hora</span>; el día arranca el primer hueco en el
+              mismo horario de inicio que definió el profesional. Los huecos ya ocupados no se muestran. Duración del
+              turno:{' '}
+              <span className="font-bold text-slate-700">{appointmentDurationMin} min</span>.
+            </p>
+            <p className="text-xs text-slate-400 mb-8">
+              Si dejás la pestaña abierta y otro paciente reserva, al volver actualizamos la lista automáticamente.
+            </p>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               <div>
@@ -315,13 +358,16 @@ export default function Booking() {
                           selectedSlot === s.datetime ? 'bg-teal-600 border-teal-600 text-white shadow-lg shadow-teal-100 scale-105' : 'border-slate-100 hover:border-teal-300 bg-white text-slate-600'
                         }`}
                       >
-                        {new Date(s.datetime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {parseSlotLocal(s.datetime).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="bg-slate-50 p-10 rounded-2xl text-center text-slate-400 font-bold border-2 border-dashed border-slate-200">
-                    No hay turnos disponibles para esta fecha
+                    <p className="mb-2 text-slate-600">No hay horarios libres para esta fecha</p>
+                    <p className="text-xs font-semibold normal-case text-slate-400">
+                      El profesional puede no tener franjas cargadas para este día, o todos los huecos de {appointmentDurationMin} min ya están reservados.
+                    </p>
                   </div>
                 )}
               </div>
@@ -342,8 +388,8 @@ export default function Booking() {
                     {[
                       { icon: '🩺', label: 'Profesional', val: kinesiologo?.full_name },
                       { icon: '🤸', label: 'Tratamiento', val: selectedTreatment },
-                      { icon: '📅', label: 'Fecha y hora', val: `${new Date(selectedSlot!).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} — ${new Date(selectedSlot!).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` },
-                      { icon: '⏱', label: 'Duración', val: '45 minutos' },
+                      { icon: '📅', label: 'Fecha y hora', val: `${parseSlotLocal(selectedSlot!).toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })} — ${parseSlotLocal(selectedSlot!).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` },
+                      { icon: '⏱', label: 'Duración', val: `${appointmentDurationMin} minutos` },
                     ].map((row, i) => (
                       <div key={i} className="flex gap-4">
                         <div className="w-9 h-9 rounded-xl bg-white border border-slate-100 flex items-center justify-center shrink-0 shadow-sm">
