@@ -34,3 +34,4 @@ docker/volumes/
 # Temporary files
 *.tmp
 *.swp
+backend/venv/Scripts/python.exe
