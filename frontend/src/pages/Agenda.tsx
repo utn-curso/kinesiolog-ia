@@ -84,6 +84,33 @@ export default function Agenda() {
 
   const handleToday = () => setCurrentDate(new Date());
 
+  const now = new Date();
+  const isPastPending = (app: Appointment) => app.status === 'pending' && new Date(app.date) < now;
+  const getAppointmentLineClasses = (app: Appointment) => {
+    if (isPastPending(app)) return 'border-l-[3px] border-red-500 bg-red-50';
+    if (app.status === 'pending') return 'border-l-[3px] border-orange-500 bg-orange-50';
+    if (app.status === 'cancelled') return 'border-l-[3px] border-red-500 bg-red-50';
+    return 'border-l-[3px] border-teal-500 bg-teal-50';
+  }
+  const getAppointmentTimeTextClass = (app: Appointment) => {
+    if (isPastPending(app)) return 'text-red-600';
+    if (app.status === 'pending') return 'text-orange-500';
+    return 'text-teal-600';
+  }
+  const getAppointmentTagClasses = (app: Appointment) => {
+    if (isPastPending(app)) return 'bg-red-50 text-red-600 border border-red-100';
+    if (app.status === 'confirmed') return 'bg-teal-50 text-teal-700 border border-teal-500';
+    if (app.status === 'pending') return 'bg-orange-50 text-orange-600 border border-orange-100';
+    return 'bg-red-50 text-red-600 border border-red-100';
+  }
+  const getAppointmentStatusLabel = (app: Appointment) => {
+    if (isPastPending(app)) return 'Perdido';
+    if (app.status === 'confirmed') return 'Confirmado';
+    if (app.status === 'pending') return 'Pendiente';
+    if (app.status === 'cancelled') return 'Cancelado';
+    return app.status;
+  }
+
   const hours = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];
   
   // Mapping appointments for the current view
@@ -107,9 +134,7 @@ export default function Agenda() {
       const top = (h - 8) * 60 + m + 4;
       const height = (app.duration_minutes || 60) - 8; 
       
-      let cls = 'border-l-[3px] border-teal-500 bg-teal-50';
-      if(app.status === 'pending') cls = 'border-l-[3px] border-orange-500 bg-orange-50';
-      if(app.status === 'cancelled') cls = 'border-l-[3px] border-red-500 bg-red-50';
+      const cls = getAppointmentLineClasses(app);
 
       const appData = {
         orig: app,
@@ -264,8 +289,8 @@ export default function Agenda() {
             
             {appointments.filter(a => new Date(a.date).toDateString() === new Date().toDateString()).length > 0 ? 
               appointments.filter(a => new Date(a.date).toDateString() === new Date().toDateString()).map((app, i) => (
-                <div key={i} onClick={() => setSelectedAppt(app)} className={`border-l-4 ${app.status==='pending'?'border-orange-500 bg-orange-50':'border-teal-500 bg-teal-50'} p-2.5 rounded-r-lg mb-2.5 cursor-pointer hover:opacity-80 transition-opacity`}>
-                  <div className={`text-[11px] font-black ${app.status==='pending'?'text-orange-500':'text-teal-600'}`}>
+                <div key={i} onClick={() => setSelectedAppt(app)} className={`${getAppointmentLineClasses(app)} p-2.5 rounded-r-lg mb-2.5 cursor-pointer hover:opacity-80 transition-opacity`}>
+                  <div className={`text-[11px] font-black ${getAppointmentTimeTextClass(app)}`}>
                     {new Date(app.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                   <div className="text-[13px] font-bold text-slate-800 leading-tight my-0.5">{app.patient?.full_name}</div>
@@ -323,9 +348,7 @@ export default function Agenda() {
                                   <div 
                                     key={j} 
                                     onClick={() => setSelectedAppt(app)}
-                                    className={`text-[9px] font-black px-1.5 py-0.5 rounded truncate border-l-2 cursor-pointer ${
-                                      app.status === 'confirmed' ? 'bg-teal-50 border-teal-500 text-teal-700' : 'bg-orange-50 border-orange-500 text-orange-700'
-                                    }`}
+                                    className={`text-[9px] font-black px-1.5 py-0.5 rounded truncate border-l-2 cursor-pointer ${getAppointmentTagClasses(app)}`}
                                   >
                                     {new Date(app.date).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })} {app.patient?.full_name}
                                   </div>
@@ -376,7 +399,7 @@ export default function Agenda() {
                           className={`absolute left-[3px] right-[3px] rounded-md px-2.5 py-1.5 cursor-pointer overflow-hidden transition-all duration-200 hover:brightness-95 hover:shadow-md ${app.cls}`}
                           style={{ top: `${app.top}px`, height: `${app.height}px`, zIndex: 10 + j }}
                         >
-                          <div className={`text-[10px] font-black ${app.orig.status === 'pending' ? 'text-orange-600/80' : 'text-teal-800/60'}`}>{app.time}</div>
+                          <div className={`text-[10px] font-black ${getAppointmentTimeTextClass(app.orig)}`}>{app.time}</div>
                           <div className="text-[13px] font-black text-slate-900 leading-tight my-0.5 truncate">{app.name}</div>
                           <div className="text-[10px] text-slate-600 font-medium truncate">{app.treatment}</div>
                         </div>
@@ -434,11 +457,8 @@ export default function Agenda() {
                 <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-sm shrink-0 border border-slate-200">📊</div>
                 <div>
                   <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">Estado actual</div>
-                  <div className={`text-[13px] font-black mt-1 capitalize px-2.5 py-1 rounded-md inline-block ${
-                    selectedAppt.status === 'confirmed' ? 'bg-green-50 text-green-700' : 
-                    selectedAppt.status === 'pending' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-700'
-                  }`}>
-                    {selectedAppt.status === 'confirmed' ? '✓ Confirmado' : selectedAppt.status === 'pending' ? '⏳ Pendiente' : '⨯ Cancelado'}
+                  <div className={`text-[13px] font-black mt-1 capitalize px-2.5 py-1 rounded-md inline-block ${getAppointmentTagClasses(selectedAppt)}`}>
+                    {getAppointmentStatusLabel(selectedAppt)}
                   </div>
                 </div>
               </div>

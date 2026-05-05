@@ -6,7 +6,7 @@ import logging
 import uvicorn
 
 from app.config import settings
-from app.database import engine, Base
+from app.database import engine, create_tables
 from app.api import api_router
 
 # Configure logging
@@ -24,11 +24,8 @@ async def lifespan(app: FastAPI):
     logger.info("Starting KineMov API...")
 
     # Create tables (ensure all models are imported)
-    from sqlalchemy import create_engine
     from app.models import user, appointment, notification, exercise
-    sync_engine = create_engine(settings.database_url.replace("+asyncpg", "").replace("+aiosqlite", ""))
-    user.Base.metadata.create_all(bind=sync_engine)
-    sync_engine.dispose()
+    await create_tables()
 
     # Start background reminder loop
     import asyncio

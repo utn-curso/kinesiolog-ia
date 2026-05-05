@@ -1,10 +1,15 @@
-import axios from 'axios'
+import axios, { AxiosRequestConfig } from 'axios'
+
+interface ApiRequestConfig extends AxiosRequestConfig {
+  skipAuthRedirect?: boolean
+}
 
 const api = axios.create({
   baseURL: (import.meta as any).env?.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 })
 
 const getApiErrorMessage = (error: any): string => {
@@ -58,27 +63,13 @@ const formatApiError = (error: any): any => {
   }
 }
 
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(formatApiError(error))
-  }
-)
-
 // Response interceptor to handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const formattedError = formatApiError(error)
-    if (formattedError.status === 401) {
-      localStorage.removeItem('token')
+    const config = error.config as ApiRequestConfig | undefined
+    if (formattedError.status === 401 && !config?.skipAuthRedirect) {
       window.location.href = '/login'
     }
     return Promise.reject(formattedError)
@@ -92,6 +83,7 @@ export { getApiErrorMessage }
 export const userApi = {
   getKinesiologos: () => api.get('/users/kinesiologos'),
   getKinesiologosProfiles: () => api.get('/users/kinesiologos-profiles'),
+  updateMe: (data: { full_name?: string; phone?: string | null }) => api.put('/users/me', data),
 }
 export const appointmentApi = {
   getAppointments: (params?: { skip?: number; limit?: number; status?: string }) =>

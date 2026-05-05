@@ -14,10 +14,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem('token')
-        if (token) {
-          await checkAuth()
-        }
+        await checkAuth()
       } catch (error) {
         console.log('Error checking auth:', error)
       } finally {

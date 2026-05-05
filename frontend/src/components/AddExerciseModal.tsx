@@ -52,11 +52,22 @@ export function AddExerciseModal({ onClose, onSuccess }: AddExerciseModalProps) 
     }));
   };
 
+  const isValidYouTubeUrl = (url: string) => {
+    if (!url.trim()) return true;
+    const pattern = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|shorts\/|embed\/)|youtu\.be\/)[^&\s]{11}(&.*)?$/i;
+    return pattern.test(url.trim());
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.treatment.trim()) {
       setError('El nombre y tratamiento son requeridos');
+      return;
+    }
+
+    if (formData.youtube_url && !isValidYouTubeUrl(formData.youtube_url)) {
+      setError('URL de YouTube inválida. Ingresa un enlace válido de YouTube.');
       return;
     }
 
