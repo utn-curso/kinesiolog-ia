@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AdminLayout } from '../components/AdminLayout'
-import { appointmentApi } from '../services/api'
+import { appointmentApi, reportApi } from '../services/api'
 import { useAuthStore } from '../context/auth'
 import { AddExerciseModal } from '../components/AddExerciseModal'
 
@@ -21,6 +21,27 @@ export default function Dashboard() {
   const [error, setError] = useState('')
   const [timeRange, setTimeRange] = useState<'week' | 'month'>('month')
   const [showExerciseModal, setShowExerciseModal] = useState(false)
+  const [selectedNotesAppt, setSelectedNotesAppt] = useState<Appointment | null>(null)
+  const [dashboardSummary, setDashboardSummary] = useState<any>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [showAllActivity, setShowAllActivity] = useState(false)
+  const getLocalDateString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [filterDesde, setFilterDesde] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return getLocalDateString(d);
+  })
+  const [filterHasta, setFilterHasta] = useState(() => {
+    return getLocalDateString(new Date());
+  })
+  const [appliedDesde, setAppliedDesde] = useState(filterDesde);
+  const [appliedHasta, setAppliedHasta] = useState(filterHasta);
   
   const user = useAuthStore(state => state.user)
 
@@ -38,6 +59,23 @@ export default function Dashboard() {
     }
     fetchAppointments()
   }, [])
+
+  useEffect(() => {
+    if (user && user.role !== 'patient') {
+      const fetchSummary = async () => {
+        setSummaryLoading(true)
+        try {
+          const { data } = await reportApi.getDashboardSummary()
+          setDashboardSummary(data)
+        } catch (err) {
+          console.error("Error fetching summary:", err)
+        } finally {
+          setSummaryLoading(false)
+        }
+      }
+      fetchSummary()
+    }
+  }, [user])
 
   // Patient Dashboard View
   if (user?.role === 'patient') {
@@ -70,8 +108,56 @@ export default function Dashboard() {
 
           {/* Appointments List */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm flex flex-col">
-            <div className="p-5 border-b border-slate-200">
+            <div className="p-5 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <h3 className="text-[15px] font-extrabold text-slate-800">Mis Turnos Registrados</h3>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Desde</span>
+                  <input 
+                    type="date" 
+                    value={filterDesde} 
+                    onChange={e => setFilterDesde(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Hasta</span>
+                  <input 
+                    type="date" 
+                    value={filterHasta} 
+                    onChange={e => setFilterHasta(e.target.value)}
+                    className="bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-lg focus:ring-teal-500 focus:border-teal-500 block p-2"
+                  />
+                </div>
+                <button 
+                  onClick={() => {
+                    if (!filterDesde || !filterHasta) {
+                      alert("Por favor, complete ambas fechas (Desde y Hasta).");
+                      return;
+                    }
+                    setAppliedDesde(filterDesde);
+                    setAppliedHasta(filterHasta);
+                  }}
+                  className="mt-4 text-xs font-bold bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors shadow-sm"
+                >
+                  Buscar
+                </button>
+                <button 
+                  onClick={() => { 
+                    const d = new Date();
+                    d.setDate(d.getDate() - 7);
+                    const initDesde = getLocalDateString(d);
+                    const initHasta = getLocalDateString(new Date());
+                    setFilterDesde(initDesde); 
+                    setFilterHasta(initHasta); 
+                    setAppliedDesde(initDesde);
+                    setAppliedHasta(initHasta);
+                  }}
+                  className="mt-4 text-xs font-bold text-slate-400 hover:text-slate-600 underline"
+                >
+                  Restaurar
+                </button>
+              </div>
             </div>
             
             <div className="overflow-x-auto">
@@ -96,17 +182,23 @@ export default function Dashboard() {
                       </td>
                     </tr>
                   ) : (
-                    appointments.map(app => {
+                    appointments.filter(app => {
+                      if (appliedDesde && new Date(app.date) < new Date(appliedDesde + 'T00:00:00')) return false;
+                      if (appliedHasta && new Date(app.date) > new Date(appliedHasta + 'T23:59:59')) return false;
+                      return true;
+                    }).map(app => {
                       const appointmentDate = new Date(app.date)
                       const isPastPending = app.status === 'pending' && appointmentDate < new Date()
-                      const statusLabel = isPastPending ? 'Perdido' : app.status === 'confirmed' ? 'Confirmado' : app.status === 'pending' ? 'Pendiente' : 'Cancelado'
+                      const statusLabel = isPastPending ? 'Perdido' : app.status === 'completed' ? 'Completado' : app.status === 'confirmed' ? 'Confirmado' : app.status === 'pending' ? 'Pendiente' : 'Cancelado'
                       const statusClass = isPastPending
                         ? 'bg-red-50 text-red-600 border border-red-100'
-                        : app.status === 'confirmed'
-                          ? 'bg-green-50 text-green-600 border border-green-100'
-                          : app.status === 'pending'
-                            ? 'bg-orange-50 text-orange-600 border border-orange-100'
-                            : 'bg-red-50 text-red-600 border border-red-100'
+                        : app.status === 'completed'
+                          ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                          : app.status === 'confirmed'
+                            ? 'bg-green-50 text-green-600 border border-green-100'
+                            : app.status === 'pending'
+                              ? 'bg-orange-50 text-orange-600 border border-orange-100'
+                              : 'bg-red-50 text-red-600 border border-red-100'
 
                       return (
                         <tr key={app.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors">
@@ -126,7 +218,11 @@ export default function Dashboard() {
                               {statusLabel}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5 text-[12px] text-slate-500 max-w-[200px] truncate">
+                          <td 
+                            className={`px-5 py-3.5 text-[12px] max-w-[200px] truncate ${app.notes ? 'cursor-pointer text-slate-500 hover:text-teal-600 transition-colors' : 'text-slate-400'}`}
+                            onClick={() => app.notes && setSelectedNotesAppt(app)}
+                            title={app.notes ? "Click para ver notas completas" : ""}
+                          >
                             {app.notes || '-'}
                           </td>
                         </tr>
@@ -138,20 +234,58 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Modal de Notas */}
+        {selectedNotesAppt && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setSelectedNotesAppt(null) }}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200 relative">
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-lg">📝</div>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-800">Notas del Turno</h3>
+                    <p className="text-xs font-bold text-slate-500">
+                      {new Date(selectedNotesAppt.date).toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long' })}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedNotesAppt(null)}
+                  className="text-slate-400 hover:text-slate-600 text-2xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  &times;
+                </button>
+              </div>
+              <div className="p-6 min-h-[200px] max-h-[60vh] overflow-y-auto">
+                <div className="text-[14px] text-slate-700 whitespace-pre-wrap leading-relaxed font-medium">
+                  {selectedNotesAppt.notes}
+                </div>
+              </div>
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button 
+                  onClick={() => setSelectedNotesAppt(null)}
+                  className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors shadow-sm"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </AdminLayout>
     )
   }
 
   // Admin / Kinesiologo Dashboard View
-  const monthData = [590, 480, 667, 720, 650];
-  const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May'];
+  const monthData = dashboardSummary?.revenue_trend?.map((d: any) => d.revenue) || [590, 480, 667, 720, 650];
+  const monthLabels = dashboardSummary?.revenue_trend?.map((d: any) => d.label) || ['Ene', 'Feb', 'Mar', 'Abr', 'May'];
   
   const weekData = [85, 92, 78, 110, 95, 102, 120];
   const weekLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
   const chartData = timeRange === 'month' ? monthData : weekData;
   const chartLabels = timeRange === 'month' ? monthLabels : weekLabels;
-  const maxVal = Math.max(...chartData) * 1.15;
+  const maxVal = Math.max(...chartData, 1000) * 1.15;
 
   // Real data logic: Filter appointments by date
   const now = new Date();
@@ -210,7 +344,7 @@ export default function Dashboard() {
               <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 8%</span>
             </div>
             <div className="text-3xl font-black leading-none text-slate-800">
-              {timeRange === 'month' ? totalMonth : totalWeek}
+              {dashboardSummary?.stats?.total_appointments || (timeRange === 'month' ? totalMonth : totalWeek)}
             </div>
             <div className="text-xs text-slate-500 font-bold mt-1">Turnos {timeRange === 'month' ? 'del mes' : 'esta semana'}</div>
           </div>
@@ -227,7 +361,9 @@ export default function Dashboard() {
               <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-green-50">✅</div>
               <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-red-50 text-red-600">↓ 2%</span>
             </div>
-            <div className="text-3xl font-black leading-none text-slate-800">91%</div>
+            <div className="text-3xl font-black leading-none text-slate-800">
+              {dashboardSummary?.stats?.completion_rate ? `${Math.round(dashboardSummary.stats.completion_rate)}%` : '91%'}
+            </div>
             <div className="text-xs text-slate-500 font-bold mt-1">Tasa asistencia</div>
           </div>
         </div>
@@ -237,12 +373,13 @@ export default function Dashboard() {
           <div className="lg:col-span-3 bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[15px] font-extrabold text-slate-800">Ingresos {timeRange === 'month' ? 'mensuales' : 'semanales'}</h3>
-              <span className="text-xs text-teal-600 font-bold cursor-pointer">Ver reporte completo →</span>
+              <Link to="/reportes" className="text-xs text-teal-600 font-bold cursor-pointer hover:underline">Ver reporte completo →</Link>
             </div>
             <div className="flex items-end gap-2 h-[120px] pb-6 relative border-b border-slate-200">
-              {chartData.map((val, idx) => {
+              {chartData.map((val: number, idx: number) => {
                 const isLast = idx === chartData.length - 1;
                 const heightPct = Math.round((val / maxVal) * 100);
+                const displayVal = val >= 1000 ? `${(val/1000).toFixed(1)}K` : `$${val}`;
                 return (
                   <div key={idx} className="flex-1 flex flex-col items-center gap-1 group">
                     <div 
@@ -250,7 +387,7 @@ export default function Dashboard() {
                       style={{ height: `${heightPct}%`, minHeight: '4px', backgroundColor: isLast ? '#0D9488' : '#cbd5e1' }}
                     >
                       <div className={`absolute -top-3.5 w-full text-center text-[9px] font-extrabold ${isLast ? 'text-teal-600' : 'text-slate-400'}`}>
-                        ${val}K
+                        {displayVal}
                       </div>
                     </div>
                     <div className="text-[10px] text-slate-500 font-bold mt-1">{chartLabels[idx]}</div>
@@ -320,10 +457,10 @@ export default function Dashboard() {
                 <div className="text-xl mb-1">🏋️</div>
                 <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Agregar ejercicio</div>
               </button>
-              <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
+              <Link to="/reportes" className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group block">
                 <div className="text-xl mb-1">📋</div>
                 <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Generar reporte</div>
-              </button>
+              </Link>
               <button className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center transition-all hover:bg-teal-50 hover:border-teal-500 group">
                 <div className="text-xl mb-1">🔐</div>
                 <div className="text-xs font-extrabold text-slate-700 group-hover:text-teal-700">Ver log auditoría</div>
@@ -334,37 +471,46 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[15px] font-extrabold text-slate-800">Actividad reciente</h3>
-              <span className="text-xs text-slate-500 font-bold cursor-pointer hover:text-slate-800">Ver todo</span>
+              <span 
+                onClick={() => setShowAllActivity(true)}
+                className="text-xs text-teal-600 font-bold cursor-pointer hover:underline"
+              >
+                Ver todo
+              </span>
             </div>
             <div className="flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-teal-500 mt-1.5 shrink-0"></div>
-                <div>
-                  <div className="text-[13px] font-medium text-slate-800"><span className="font-extrabold">Laura Gómez</span> confirmó turno vía WhatsApp</div>
-                  <div className="text-[11px] text-slate-500">Hace 12 min</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-orange-500 mt-1.5 shrink-0"></div>
-                <div>
-                  <div className="text-[13px] font-medium text-slate-800"><span className="font-extrabold">Jorge Ríos</span> canceló turno de 14:00</div>
-                  <div className="text-[11px] text-slate-500">Hace 40 min</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0"></div>
-                <div>
-                  <div className="text-[13px] font-medium text-slate-800"><span className="font-extrabold">Lic. María Acosta</span> envió indicaciones a Carlos P.</div>
-                  <div className="text-[11px] text-slate-500">Hace 1h</div>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-green-500 mt-1.5 shrink-0"></div>
-                <div>
-                  <div className="text-[13px] font-medium text-slate-800">Pago de <span className="font-extrabold">$4.500</span> recibido — Mercado Pago</div>
-                  <div className="text-[11px] text-slate-500">Hace 2h</div>
-                </div>
-              </div>
+              {summaryLoading ? (
+                <div className="py-10 text-center text-xs text-slate-400 font-bold uppercase tracking-widest">Cargando actividad...</div>
+              ) : dashboardSummary?.recent_activity?.length > 0 ? (
+                dashboardSummary.recent_activity.map((n: any) => {
+                  let colorClass = "bg-teal-500";
+                  if (n.type === 'cancellation') colorClass = "bg-red-500";
+                  if (n.type === 'reminder') colorClass = "bg-blue-500";
+                  if (n.type === 'reschedule') colorClass = "bg-orange-500";
+
+                  const timeAgo = new Date(n.created_at).toLocaleString('es-AR', { hour: '2-digit', minute: '2-digit' }) + ' hs';
+                  
+                  // Extract actual meaningful content
+                  let displayMessage = n.subject || n.message.split('\n')[2] || n.message.split('\n')[0];
+                  if (displayMessage.includes('Hola')) {
+                    displayMessage = n.message.split('\n').find((l: string) => l.trim() !== '' && !l.includes('Hola')) || displayMessage;
+                  }
+
+                  return (
+                    <div key={n.id} className="flex items-start gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${colorClass}`}></div>
+                      <div>
+                        <div className="text-[13px] font-medium text-slate-800 leading-tight">
+                          {displayMessage}
+                        </div>
+                        <div className="text-[11px] text-slate-500">{timeAgo}</div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-10 text-center text-xs text-slate-400 font-bold uppercase tracking-widest italic">No hay actividad reciente</div>
+              )}
             </div>
           </div>
         </div>
@@ -379,6 +525,58 @@ export default function Dashboard() {
             console.log('Exercise added successfully from dashboard');
           }}
         />
+      )}
+      {showAllActivity && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200" onClick={(e) => { if (e.target === e.currentTarget) setShowAllActivity(false) }}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200 relative">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600 text-lg">🔔</div>
+                <h3 className="text-lg font-black text-slate-800">Toda la Actividad</h3>
+              </div>
+              <button 
+                onClick={() => setShowAllActivity(false)}
+                className="text-slate-400 hover:text-slate-600 text-2xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                &times;
+              </button>
+            </div>
+            <div className="p-6 max-h-[60vh] overflow-y-auto">
+              <div className="flex flex-col gap-6">
+                {dashboardSummary?.recent_activity?.map((n: any) => (
+                  <div key={n.id} className="flex gap-4 group">
+                    <div className="flex flex-col items-center">
+                      <div className={`w-3 h-3 rounded-full mt-1 border-2 border-white shadow-sm shrink-0 ${
+                        n.type === 'cancellation' ? 'bg-red-500' : 
+                        n.type === 'reschedule' ? 'bg-orange-500' : 'bg-teal-500'
+                      }`}></div>
+                      <div className="w-0.5 h-full bg-slate-100 group-last:bg-transparent"></div>
+                    </div>
+                    <div>
+                      <div className="text-[13px] font-extrabold text-slate-800 leading-tight mb-1">
+                        {n.subject || 'Notificación del sistema'}
+                      </div>
+                      <div className="text-[12px] text-slate-500 font-medium whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-100 mt-2">
+                        {n.message.replace(/Hola.*?,/g, '').trim()}
+                      </div>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-2">
+                        {new Date(n.created_at).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} hs
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setShowAllActivity(false)}
+                className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors shadow-sm"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </AdminLayout>
   )

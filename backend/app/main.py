@@ -24,7 +24,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting KineMov API...")
 
     # Create tables (ensure all models are imported)
-    from app.models import user, appointment, notification, exercise
+    from app.models import user, appointment, notification, exercise, report
     await create_tables()
 
     # Start background reminder loop

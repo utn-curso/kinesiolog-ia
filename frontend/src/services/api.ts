@@ -107,3 +107,22 @@ export const appointmentApi = {
   processPayment: (data: { appointment_id: number; amount: number; method: string }) =>
     api.post('/appointments/process-payment', data),
 }
+
+export const reportApi = {
+  getDashboardSummary: () => api.get('/reports/dashboard-summary'),
+
+  getMonthlyReport: (params: { year: number; month: number; kinesiologo_id?: number }) =>
+    api.get('/reports/monthly', { params }),
+    
+  getCustomReport: (params: { period_start: string; period_end: string; kinesiologo_id?: number }) =>
+    api.get('/reports/custom', { params }),
+
+  getReportsList: (params?: { skip?: number; limit?: number; kinesiologo_id?: number }) =>
+    api.get('/reports/', { params }),
+}
+
+export const notificationsApi = {
+  getNotifications: () => api.get('/notifications/'),
+  markAsRead: (id: number) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+}

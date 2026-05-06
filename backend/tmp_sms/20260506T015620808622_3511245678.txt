@@ -1,0 +1,14 @@
+To: 3511245678
+
+
+Hola paciente,
+
+Tu turno ha sido reprogramado:
+
+📅 Fecha anterior: 06/05/2026
+📅 Nueva fecha: 06/05/2026
+⏰ Nueva hora: 09:00
+👨‍⚕️ Kinesiólogo: doctor
+
+Saludos,
+Equipo KineMov

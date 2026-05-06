@@ -1,0 +1,18 @@
+From: noreply@kinemov.com
+To: paciente@gmail.com
+Subject: Confirmación de Turno - KineMov
+
+
+Hola paciente,
+
+Tu turno ha sido confirmado:
+
+📅 Fecha: 06/05/2026
+⏰ Hora: 16:00
+👨‍⚕️ Kinesiólogo: doctor
+📝 Notas: Post-operatorio
+
+Si necesitas cancelar o reprogramar, hacerlo con al menos 24 horas de anticipación.
+
+Saludos,
+Equipo KineMov

@@ -8,6 +8,7 @@ import Agenda from './pages/Agenda'
 import Profile from './pages/Profile'
 import { Pacientes } from './pages/Pacientes'
 import { Ejercicios } from './pages/Ejercicios'
+import { Reportes } from './pages/Reportes'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -41,6 +42,11 @@ function App() {
         <Route path="/ejercicios" element={
           <ProtectedRoute>
             <Ejercicios />
+          </ProtectedRoute>
+        } />
+        <Route path="/reportes" element={
+          <ProtectedRoute>
+            <Reportes />
           </ProtectedRoute>
         } />
       </Routes>

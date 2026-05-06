@@ -74,8 +74,8 @@ Equipo KineMov
             appointment_id=appointment.id
         )
 
-        # Enviar inmediatamente y actualizar registro
-        return await self._process_notification(
+        # Enviar inmediatamente y actualizar registro para el paciente
+        success = await self._process_notification(
             notification=notification,
             email=patient.email,
             subject=subject,
@@ -83,6 +83,40 @@ Equipo KineMov
             phone=patient.phone,
             channel="email",
         )
+
+        # Notificar al kinesiólogo
+        kine_subject = "Nuevo Turno Asignado - KineMov"
+        kine_message = f"""
+Hola {kinesiologo.full_name},
+
+Se te ha asignado un nuevo turno:
+
+📅 Fecha: {appointment.date.strftime('%d/%m/%Y')}
+⏰ Hora: {appointment.date.strftime('%H:%M')}
+👤 Paciente: {patient.full_name}
+📝 Notas: {appointment.notes or 'Sin notas'}
+
+Saludos,
+Equipo KineMov
+"""
+        kine_notification = await self.create_notification(
+            user_id=kinesiologo.id,
+            notification_type="new_assignment",
+            channel="email",
+            message=kine_message,
+            subject=kine_subject,
+            appointment_id=appointment.id
+        )
+        await self._process_notification(
+            notification=kine_notification,
+            email=kinesiologo.email,
+            subject=kine_subject,
+            message=kine_message,
+            phone=kinesiologo.phone,
+            channel="email",
+        )
+
+        return success
 
     async def send_appointment_reminder(
         self,
@@ -180,9 +214,9 @@ Hola {patient.full_name},
 
 Tu turno ha sido reprogramado:
 
-📅 Fecha anterior: {old_date.strftime('%d/%m/%Y')}
+📅 Fecha y hora anterior: {old_date.strftime('%d/%m/%Y %H:%M')} hs
 📅 Nueva fecha: {appointment.date.strftime('%d/%m/%Y')}
-⏰ Nueva hora: {appointment.date.strftime('%H:%M')}
+⏰ Nueva hora: {appointment.date.strftime('%H:%M')} hs
 👨‍⚕️ Kinesiólogo: {kinesiologo.full_name}
 
 Saludos,
@@ -194,6 +228,16 @@ Equipo KineMov
             channel="both",
             message=message,
             subject=subject,
+            appointment_id=appointment.id
+        )
+
+        # También notificar al kinesiólogo
+        await self.create_notification(
+            user_id=kinesiologo.id,
+            notification_type="reschedule",
+            channel="in_app",
+            message=f"Has reprogramado el turno del paciente {patient.full_name}.\n\n📅 Fecha anterior: {old_date.strftime('%d/%m/%Y %H:%M')} hs\n📅 Nueva fecha: {appointment.date.strftime('%d/%m/%Y %H:%M')} hs",
+            subject="Turno Reprogramado (Saliente)",
             appointment_id=appointment.id
         )
 
@@ -286,3 +330,29 @@ Equipo KineMov
             .order_by(Notification.created_at)
         )
         return result.scalars().all()
+
+    async def mark_notification_as_read(self, notification_id: int, user_id: int) -> bool:
+        """Marcar una notificación como leída"""
+        result = await self.db.execute(
+            select(Notification).where(
+                Notification.id == notification_id,
+                Notification.user_id == user_id
+            )
+        )
+        notification = result.scalar_one_or_none()
+        if notification:
+            notification.is_read = True
+            await self.db.commit()
+            return True
+        return False
+
+    async def mark_all_as_read(self, user_id: int) -> int:
+        """Marcar todas las notificaciones de un usuario como leídas"""
+        from sqlalchemy import update
+        result = await self.db.execute(
+            update(Notification)
+            .where(Notification.user_id == user_id, Notification.is_read == False)
+            .values(is_read=True)
+        )
+        await self.db.commit()
+        return result.rowcount

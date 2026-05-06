@@ -17,6 +17,7 @@ class Notification(Base):
     # Estado
     sent = Column(Boolean, default=False)
     sent_at = Column(DateTime, nullable=True)
+    is_read = Column(Boolean, default=False)
     error_message = Column(Text, nullable=True)
     
     # Contenido

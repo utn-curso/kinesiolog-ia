@@ -1,0 +1,16 @@
+From: noreply@kinemov.com
+To: doctor@gmail.com
+Subject: Nuevo Turno Asignado - KineMov
+
+
+Hola doctor,
+
+Se te ha asignado un nuevo turno:
+
+📅 Fecha: 06/05/2026
+⏰ Hora: 16:00
+👤 Paciente: paciente
+📝 Notas: Pilates terapéutico
+
+Saludos,
+Equipo KineMov

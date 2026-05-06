@@ -42,6 +42,8 @@ async def get_appointments(
             "status": a.status,
             "created_at": a.created_at,
             "updated_at": a.updated_at,
+            "patient": {"full_name": a.patient.full_name} if hasattr(a, 'patient') and a.patient else None,
+            "kinesiologo": {"user": {"full_name": a.kinesiologo.user.full_name}} if hasattr(a, 'kinesiologo') and a.kinesiologo and hasattr(a.kinesiologo, 'user') and a.kinesiologo.user else None,
         }
 
     return [to_dict(a) for a in appointments]
@@ -131,9 +133,32 @@ async def process_payment(
     if not payment_data.get('appointment_id'):
         raise HTTPException(status_code=400, detail="Appointment ID required")
 
-    # Simulate payment processing delay
-    import asyncio
-    await asyncio.sleep(1)
+    # Find existing payment record for this appointment
+    from sqlalchemy.future import select
+    from app.models.payment import Payment
+    
+    payment_result = await db.execute(select(Payment).where(Payment.appointment_id == payment_data['appointment_id']))
+    payment = payment_result.scalar_one_or_none()
+    
+    if payment:
+        payment.amount = payment_data['amount']
+        payment.payment_method = payment_data.get('method', 'mock')
+        
+        # Si el método es efectivo, el pago queda pendiente hasta que se complete el turno
+        if payment.payment_method == 'cash':
+            payment.status = "pending"
+        else:
+            payment.status = "completed"
+        
+        # Also confirm the appointment since payment was successful (only if not cash)
+        from app.models.appointment import Appointment, AppointmentStatus
+        appointment_result = await db.execute(select(Appointment).where(Appointment.id == payment.appointment_id))
+        appointment = appointment_result.scalar_one_or_none()
+        if appointment and appointment.status == AppointmentStatus.PENDING.value:
+            if payment.payment_method != 'cash':
+                appointment.status = AppointmentStatus.CONFIRMED.value
+            
+        await db.commit()
 
     # Mock successful payment response
     return {
