@@ -4,8 +4,8 @@ from app.models.appointment import Appointment
 from app.models.service import Service
 from app.models.time_slot import TimeSlot
 from app.models.notification import Notification
-<<<<<<< HEAD
 from app.models.exercise import Exercise
+from app.models.payment import Payment
 
 __all__ = [
     "User",
@@ -15,9 +15,5 @@ __all__ = [
     "TimeSlot",
     "Notification",
     "Exercise",
+    "Payment",
 ]
-=======
-from app.models.payment import Payment
-
-__all__ = ["User", "Kinesiologo", "Appointment", "Service", "TimeSlot", "Notification", "Payment"]
->>>>>>> main
