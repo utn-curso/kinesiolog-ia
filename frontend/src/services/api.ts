@@ -129,6 +129,7 @@ export const timeSlotApi = {
     api.put(`/time-slots/me/${id}`, data),
 
   delete: (id: number) => api.delete(`/time-slots/me/${id}`),
+}
 
 export const reportApi = {
   getDashboardSummary: () => api.get('/reports/dashboard-summary'),
@@ -147,5 +148,4 @@ export const notificationsApi = {
   getNotifications: () => api.get('/notifications/'),
   markAsRead: (id: number) => api.put(`/notifications/${id}/read`),
   markAllAsRead: () => api.put('/notifications/read-all'),
-
 }
