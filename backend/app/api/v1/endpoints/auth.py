@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,12 +7,14 @@ from app.database import get_db
 from app.services.auth import authenticate_user, create_user, create_access_token
 from app.schemas.user import User, UserCreate, Token
 from app.utils.email import send_welcome_email
+from app.config import settings
 
 router = APIRouter()
 
 
 @router.post("/login", response_model=Token)
 async def login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_db)
 ):
@@ -29,7 +31,22 @@ async def login(
     access_token = create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=settings.environment != "development",
+        samesite="lax",
+        max_age=int(access_token_expires.total_seconds()),
+        path='/',
+    )
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    response.delete_cookie("access_token", path='/')
+    return {"message": "Logged out"}
 
 
 @router.post("/register", response_model=User)

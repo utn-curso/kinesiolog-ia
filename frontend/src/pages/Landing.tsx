@@ -1,10 +1,163 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Layout } from '../components/Layout'
 import { Button } from '../components/Button'
+import { userApi } from '../services/api'
+
+interface Kinesiologo {
+  kinesiologo_id: number
+  user_id: number
+  full_name: string
+  email: string
+  specialty: string | null
+}
 
 export default function Landing() {
+  const [kinesiologos, setKinesiologos] = useState<Kinesiologo[]>([])
+  const [showTerms, setShowTerms] = useState(false)
+
+  useEffect(() => {
+    const loadKinesiologos = async () => {
+      try {
+        const response = await userApi.getKinesiologosProfiles()
+        setKinesiologos(response.data.slice(0, 3)) // Máximo 3
+      } catch (error) {
+        console.error('Error loading kinesiologos:', error)
+        setKinesiologos([])
+      }
+    }
+    loadKinesiologos()
+  }, [])
+
+  const colors = ['from-teal-600 to-teal-400', 'from-blue-600 to-blue-400', 'from-orange-500 to-orange-300']
+  
   return (
     <Layout>
+      {/* Legal Modal */}
+      {showTerms && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-6 z-[9999] animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-hidden border border-slate-200 flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-teal-600 rounded-2xl flex items-center justify-center text-white text-xl shadow-lg shadow-teal-100">⚖️</div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">Términos, Condiciones y Privacidad</h3>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Marco Legal y Protección de Datos de Salud (Ley 25.326 & 26.529)</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowTerms(false)}
+                className="w-10 h-10 rounded-full bg-white shadow-sm border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all text-2xl"
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div className="p-10 overflow-y-auto custom-scrollbar bg-white">
+              <div className="prose prose-slate max-w-none">
+                <div className="space-y-10">
+                  {/* Introducción */}
+                  <div className="bg-teal-50/50 p-6 rounded-2xl border border-teal-100 mb-8">
+                    <p className="text-sm text-teal-800 leading-relaxed font-medium">
+                      El presente documento establece el marco legal que regula la relación entre el <strong>Centro de Kinesiología & Fisioterapia KineMov</strong> y sus pacientes, en estricto cumplimiento con la normativa de la República Argentina, garantizando la seguridad jurídica y la protección integral de los derechos de salud.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
+                    {/* Sección 1 */}
+                    <section>
+                      <h4 className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[10px] shadow-sm">01</span>
+                        Consentimiento Informado
+                      </h4>
+                      <p className="text-[13px] text-slate-600 leading-relaxed">
+                        De acuerdo a la <strong>Ley 26.529 de Derechos del Paciente</strong>, el inicio de cualquier tratamiento kinésico requiere la aceptación de los procedimientos propuestos. El paciente declara que el profesional ha explicado de manera clara los objetivos, técnicas y posibles riesgos de la rehabilitación, otorgando su conformidad libre y voluntaria para el abordaje terapéutico.
+                      </p>
+                    </section>
+
+                    {/* Sección 2 */}
+                    <section>
+                      <h4 className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[10px] shadow-sm">02</span>
+                        Historia Clínica Digital
+                      </h4>
+                      <p className="text-[13px] text-slate-600 leading-relaxed">
+                        KineMov actúa como depositario de la <strong>Historia Clínica</strong> del paciente, la cual es de propiedad del mismo. Nos comprometemos a mantener su integridad, confidencialidad y disponibilidad técnica. El paciente tiene derecho a solicitar copia de su HC en cualquier momento, conforme a los plazos legales establecidos.
+                      </p>
+                    </section>
+
+                    {/* Sección 3 */}
+                    <section>
+                      <h4 className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[10px] shadow-sm">03</span>
+                        Protección de Datos Sensibles
+                      </h4>
+                      <p className="text-[13px] text-slate-600 leading-relaxed">
+                        Sus datos de salud son considerados <strong>"Datos Sensibles"</strong> por la <strong>Ley 25.326</strong>. KineMov implementa medidas de seguridad de nivel crítico para evitar el acceso no autorizado. Los datos recolectados se utilizan exclusivamente para la gestión asistencial, administrativa y de seguimiento profesional. No se realizarán cesiones a terceros sin consentimiento expreso.
+                      </p>
+                    </section>
+
+                    {/* Sección 4 */}
+                    <section>
+                      <h4 className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[10px] shadow-sm">04</span>
+                        Política de Cancelación Estricta
+                      </h4>
+                      <p className="text-[13px] text-slate-600 leading-relaxed">
+                        Dada la naturaleza del servicio asistencial, la inasistencia sin aviso perjudica la atención de otros pacientes en lista de espera. Las sesiones deben cancelarse con <strong>24 horas de antelación</strong>. En caso de inasistencia injustificada o aviso tardío, el centro se reserva el derecho de cobrar el valor total de la sesión.
+                      </p>
+                    </section>
+
+                    {/* Sección 5 */}
+                    <section>
+                      <h4 className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[10px] shadow-sm">05</span>
+                        Responsabilidad del Paciente
+                      </h4>
+                      <p className="text-[13px] text-slate-600 leading-relaxed">
+                        El paciente asume el compromiso de brindar información veraz sobre su estado de salud, cirugías previas y medicación. El ocultamiento de patologías preexistentes libera de responsabilidad al centro y al profesional tratante ante cualquier complicación derivada de dicha omisión.
+                      </p>
+                    </section>
+
+                    {/* Sección 6 */}
+                    <section>
+                      <h4 className="text-[11px] font-black text-teal-600 uppercase tracking-widest mb-4 flex items-center gap-3">
+                        <span className="w-7 h-7 rounded-lg bg-teal-600 text-white flex items-center justify-center text-[10px] shadow-sm">06</span>
+                        Jurisdicción y Ley Aplicable
+                      </h4>
+                      <p className="text-[13px] text-slate-600 leading-relaxed">
+                        Ante cualquier controversia legal derivada del uso de esta plataforma o de la prestación del servicio kinésico, las partes se someten a la jurisdicción de los <strong>Tribunales Ordinarios de la Ciudad de Mar del Plata</strong>, renunciando a cualquier otro fuero o jurisdicción.
+                      </p>
+                    </section>
+                  </div>
+
+                  <section className="bg-slate-900 p-8 rounded-[2.5rem] text-white overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-teal-500/30 transition-all duration-700"></div>
+                    <h4 className="text-[10px] font-black text-teal-400 uppercase tracking-[0.3em] mb-4">Derechos ARCO</h4>
+                    <p className="text-[13px] text-slate-300 leading-relaxed mb-6">
+                      Usted puede ejercer sus derechos de <strong>Acceso, Rectificación, Actualización y Supresión</strong> de sus datos personales enviando un correo electrónico a <span className="text-teal-400 font-bold">privacidad@kinemov.com.ar</span> adjuntando copia de su DNI para validar identidad.
+                    </p>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-500 font-black italic">
+                      <span>Ref: Agencia de Acceso a la Información Pública (AAIP)</span>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-8 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Versión 2.0.1 - Actualizado Mayo 2026</p>
+              <button 
+                onClick={() => setShowTerms(false)}
+                className="px-12 py-4 bg-teal-600 text-white text-xs font-black rounded-2xl hover:bg-teal-700 transition-all shadow-xl shadow-teal-100 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                ACEPTO LOS TÉRMINOS Y CONDICIONES
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="relative bg-white overflow-hidden py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -23,9 +176,13 @@ export default function Landing() {
               <Link to="/booking">
                 <Button className="px-8 py-4 text-base shadow-lg shadow-teal-100">Reservar Turno</Button>
               </Link>
-              <Link to="/login">
-                <Button variant="secondary" className="px-8 py-4 text-base">Ver Servicios</Button>
-              </Link>
+              <Button
+                variant="secondary"
+                className="px-8 py-4 text-base"
+                onClick={() => document.getElementById('servicios')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Ver Servicios
+              </Button>
             </div>
           </div>
 
@@ -53,7 +210,7 @@ export default function Landing() {
       </section>
 
       {/* Services Section */}
-      <section className="py-24 bg-slate-50">
+      <section id="servicios" className="py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">Nuestros Servicios</h2>
@@ -82,33 +239,34 @@ export default function Landing() {
       </section>
 
       {/* Team Section */}
-      <section className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">Nuestro Equipo</h2>
-            <p className="text-slate-500 max-w-2xl mx-auto font-medium">Profesionales matriculados con años de experiencia dedicados a tu salud.</p>
-          </div>
+      {kinesiologos.length > 0 && (
+        <section className="py-24 bg-white">
+          <div className="max-w-7xl mx-auto px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">Nuestro Equipo</h2>
+              <p className="text-slate-500 max-w-2xl mx-auto font-medium">Profesionales matriculados con años de experiencia dedicados a tu salud.</p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { name: 'Lic. María Acosta', esp: 'Traumatología', desc: '10 años de experiencia en rehabilitación post-quirúrgica y deportiva.', initial: 'MA', color: 'from-teal-600 to-teal-400' },
-              { name: 'Lic. Juan Rodríguez', esp: 'Neurológica', desc: 'Especialista en patologías neurológicas y rehabilitación funcional compleja.', initial: 'JR', color: 'from-blue-600 to-blue-400' },
-              { name: 'Lic. Sofía Vega', esp: 'Pilates', desc: 'Instructora certificada en Pilates terapéutico y kinesiología deportiva.', initial: 'SV', color: 'from-orange-500 to-orange-300' },
-            ].map((pro, i) => (
-              <div key={i} className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-100 hover:shadow-lg transition-shadow">
-                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${pro.color} flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-md`}>
-                  {pro.initial}
-                </div>
-                <h4 className="text-lg font-bold text-slate-900 mb-2">{pro.name}</h4>
-                <span className="inline-block bg-teal-100 text-teal-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4">
-                  {pro.esp}
-                </span>
-                <p className="text-slate-500 text-sm leading-relaxed">{pro.desc}</p>
-              </div>
-            ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {kinesiologos.map((kine, i) => {
+                const initials = kine.full_name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
+                return (
+                  <div key={kine.kinesiologo_id} className="bg-slate-50 rounded-2xl p-8 text-center border border-slate-100 hover:shadow-lg transition-shadow">
+                    <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${colors[i % colors.length]} flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 shadow-md`}>
+                      {initials}
+                    </div>
+                    <h4 className="text-lg font-bold text-slate-900 mb-2">{kine.full_name}</h4>
+                    <span className="inline-block bg-teal-100 text-teal-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest mb-4">
+                      {kine.specialty || 'General'}
+                    </span>
+                    <p className="text-slate-500 text-sm leading-relaxed">Profesional especializado en kinesiología con experiencia en tratamientos personalizados.</p>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Contact Section */}
       <section className="py-24 bg-slate-900 text-white">
@@ -142,12 +300,15 @@ export default function Landing() {
               </div>
             </div>
           </div>
-          <div className="h-[400px] bg-slate-800 rounded-3xl border border-white/10 flex items-center justify-center relative overflow-hidden group">
-            <div className="absolute inset-0 opacity-20 bg-[url('https://www.google.com/maps/vt/pb=!1m4!1m3!1i12!2i1024!3i1536!2m3!1e0!2sm!3i388172593!3m8!2ses!3sAR!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!5f2!23i1301875')] bg-cover"></div>
-            <div className="relative z-10 text-center">
-              <div className="text-4xl mb-4 transform group-hover:scale-125 transition-transform">📍</div>
-              <div className="bg-white text-slate-900 px-6 py-2 rounded-full font-bold text-sm shadow-xl">Google Maps — KineMov</div>
-            </div>
+          <div className="rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+            <iframe
+              title="KineMov - Google Maps"
+              src="https://www.google.com/maps?q=Av.+Col%C3%B3n+1234,+Mar+del+Plata,+Argentina&output=embed"
+              className="w-full h-[400px]"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
         </div>
       </section>
@@ -157,11 +318,15 @@ export default function Landing() {
           <div className="font-black text-teal-600 text-base">Kine<span className="text-white">Mov</span></div>
           <div>© 2026 Centro de Kinesiología & Fisioterapia. Todos los derechos reservados.</div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-white transition-colors">Términos</a>
-            <a href="#" className="hover:text-white transition-colors">Privacidad</a>
+            <button 
+              onClick={() => setShowTerms(true)}
+              className="hover:text-white transition-colors font-bold uppercase tracking-widest text-[10px]"
+            >
+              Términos y Privacidad
+            </button>
           </div>
         </div>
       </footer>
     </Layout>
   )
-}
+}

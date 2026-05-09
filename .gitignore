@@ -5,15 +5,41 @@ __pycache__/
 *.pyd
 env/
 venv/
+venv_exec/
 .venv/
 .venv*/
 *.sqlite3
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage*
+coverage.xml
+*.egg-info/
+*.egg/
+.tox/
+
+# Project temp outputs
+tmp_emails/
+tmp_sms/
 
 # Node
 node_modules/
 dist/
 build/
+
+# Node tooling caches
+.vite/
+.turbo/
+.parcel-cache/
+
+# Secrets (keep *.example tracked)
 .env
+.env*.local
+backend/.env
+frontend/.env.local
 
 # IDE
 .vscode/

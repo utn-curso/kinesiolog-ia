@@ -23,21 +23,9 @@ async def lifespan(application: FastAPI):
     # Startup
     logger.info("Starting KineMov API...")
 
-    if settings.sync_db_schema_on_startup:
-        import app.models  # noqa: F401 — carga modelos (no usar nombre `app` como variable local tras esto)
-
-        await create_tables()
-        logger.info("Esquema de base de datos alineado con los modelos (create_all)")
-    else:
-        logger.info("sync_db_schema_on_startup desactivado; no se modificó el esquema")
-
-    ts_ok = any(
-        getattr(r, "path", "").startswith("/api/time-slots") for r in application.routes
-    )
-    logger.info(
-        "Rutas /api/time-slots disponibles: %s (si es False, reiniciá uvicorn tras actualizar código)",
-        ts_ok,
-    )
+    # Create tables (ensure all models are imported)
+    from app.models import user, appointment, notification, exercise, report
+    await create_tables()
 
     # Start background reminder loop
     import asyncio

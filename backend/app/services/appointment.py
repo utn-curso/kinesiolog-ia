@@ -7,6 +7,7 @@ from sqlalchemy.orm import joinedload
 from app.models.appointment import Appointment, AppointmentStatus
 from app.models.time_slot import TimeSlot
 from app.models.user import User, Kinesiologo
+from app.models.payment import Payment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
 from app.services.notification import NotificationService
 from app.services.time_slot import ZONE_AR, appointment_overlaps_interval
@@ -58,7 +59,10 @@ class AppointmentService:
         limit: int = 100,
         status: Optional[AppointmentStatus] = None
     ) -> List[Appointment]:
-        query = select(Appointment)
+        query = select(Appointment).options(
+            joinedload(Appointment.patient),
+            joinedload(Appointment.kinesiologo).joinedload(Kinesiologo.user)
+        )
 
         if user_role == "patient":
             query = query.where(Appointment.patient_id == user_id)
@@ -75,6 +79,7 @@ class AppointmentService:
         if status:
             query = query.where(Appointment.status == status)
 
+        query = query.order_by(Appointment.date.desc())
         query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         return result.scalars().all()
@@ -140,6 +145,16 @@ class AppointmentService:
         await self.db.commit()
         await self.db.refresh(appointment)
 
+        # Create payment record
+        payment_amount = appointment_data.amount if getattr(appointment_data, 'amount', None) is not None else 0.0
+        payment = Payment(
+            appointment_id=appointment.id,
+            amount=payment_amount,
+            status="pending" if payment_amount > 0 else "completed" # if 0, nothing to pay
+        )
+        self.db.add(payment)
+        await self.db.commit()
+
         # Send confirmation email (async)
         patient_result = await self.db.execute(select(User).where(User.id == patient_id))
         patient = patient_result.scalar_one_or_none()
@@ -164,8 +179,33 @@ class AppointmentService:
         if not appointment:
             return None
 
-        for field, value in update_data.model_dump(exclude_unset=True).items():
-            setattr(appointment, field, value)
+        old_date = appointment.date
+        date_changed = False
+        
+        if update_data.date is not None:
+            if appointment.date != update_data.date:
+                appointment.date = update_data.date
+                date_changed = True
+        if update_data.duration_minutes is not None:
+            appointment.duration_minutes = update_data.duration_minutes
+        if update_data.notes is not None:
+            appointment.notes = update_data.notes
+        if update_data.status is not None:
+            appointment.status = update_data.status.value if hasattr(update_data.status, 'value') else update_data.status
+            
+        # Si el turno se marca como completado o cancelado, actualizar su pago
+        if appointment.status == AppointmentStatus.COMPLETED.value:
+            from app.models.payment import Payment
+            payment_result = await self.db.execute(select(Payment).where(Payment.appointment_id == appointment.id))
+            payment = payment_result.scalar_one_or_none()
+            if payment and payment.status == "pending":
+                payment.status = "completed"
+        elif appointment.status == AppointmentStatus.CANCELLED.value:
+            from app.models.payment import Payment
+            payment_result = await self.db.execute(select(Payment).where(Payment.appointment_id == appointment.id))
+            payment = payment_result.scalar_one_or_none()
+            if payment:
+                payment.status = "refunded" if payment.status == "completed" else "cancelled"
 
         appointment.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
@@ -187,6 +227,23 @@ class AppointmentService:
                 notif_service = NotificationService(self.db)
                 await notif_service.send_appointment_cancellation(
                     appointment=appointment,
+                    patient=patient,
+                    kinesiologo=kinesiologo.user if kinesiologo else None,
+                )
+        
+        # If date changed, send reschedule notification
+        if date_changed:
+            patient_result = await self.db.execute(select(User).where(User.id == appointment.patient_id))
+            patient = patient_result.scalar_one_or_none()
+            kinesiologo_result = await self.db.execute(
+                select(Kinesiologo).options(joinedload(Kinesiologo.user)).where(Kinesiologo.id == appointment.kinesiologo_id)
+            )
+            kinesiologo = kinesiologo_result.scalar_one_or_none()
+            if patient and kinesiologo:
+                notif_service = NotificationService(self.db)
+                await notif_service.send_appointment_reschedule(
+                    appointment=appointment,
+                    old_date=old_date,
                     patient=patient,
                     kinesiologo=kinesiologo.user if kinesiologo else None,
                 )

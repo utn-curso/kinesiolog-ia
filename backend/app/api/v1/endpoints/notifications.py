@@ -18,6 +18,7 @@ class NotificationOut(BaseModel):
     channel: str
     sent: bool
     sent_at: Optional[str]
+    is_read: bool
     subject: Optional[str]
     message: str
     created_at: str
@@ -43,12 +44,36 @@ async def get_my_notifications(
             channel=n.channel,
             sent=n.sent,
             sent_at=n.sent_at.isoformat() if n.sent_at else None,
+            is_read=n.is_read,
             subject=n.subject,
             message=n.message,
             created_at=n.created_at.isoformat()
         )
         for n in notifications
     ]
+
+
+@router.put("/{notification_id}/read")
+async def mark_notification_as_read(
+    notification_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Marcar una notificación como leída"""
+    service = NotificationService(db)
+    success = await service.mark_notification_as_read(notification_id, current_user.id)
+    return {"success": success}
+
+
+@router.put("/read-all")
+async def mark_all_as_read(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Marcar todas las notificaciones como leídas"""
+    service = NotificationService(db)
+    count = await service.mark_all_as_read(current_user.id)
+    return {"success": True, "count": count}
 
 
 @router.post("/test")

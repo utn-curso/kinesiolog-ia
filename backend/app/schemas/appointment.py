@@ -21,6 +21,7 @@ class AppointmentBase(BaseModel):
 
 class AppointmentCreate(AppointmentBase):
     kinesiologo_id: int
+    amount: Optional[float] = None
 
 
 class AppointmentUpdate(BaseModel):
@@ -53,3 +54,5 @@ class AppointmentOut(AppointmentBase):
     status: AppointmentStatus
     created_at: datetime
     updated_at: Optional[datetime] = None
+    patient: Optional[dict] = None
+    kinesiologo: Optional[dict] = None

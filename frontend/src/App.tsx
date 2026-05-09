@@ -6,8 +6,10 @@ import Dashboard from './pages/Dashboard'
 import Booking from './pages/Booking'
 import Agenda from './pages/Agenda'
 import Disponibilidad from './pages/Disponibilidad'
+import Profile from './pages/Profile'
 import { Pacientes } from './pages/Pacientes'
 import { Ejercicios } from './pages/Ejercicios'
+import { Reportes } from './pages/Reportes'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
@@ -38,9 +40,19 @@ function App() {
             <Pacientes />
           </ProtectedRoute>
         } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
         <Route path="/ejercicios" element={
           <ProtectedRoute>
             <Ejercicios />
+          </ProtectedRoute>
+        } />
+        <Route path="/reportes" element={
+          <ProtectedRoute>
+            <Reportes />
           </ProtectedRoute>
         } />
       </Routes>
