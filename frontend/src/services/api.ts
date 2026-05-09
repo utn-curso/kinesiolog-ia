@@ -108,6 +108,29 @@ export const appointmentApi = {
     api.post('/appointments/process-payment', data),
 }
 
+export interface TimeSlotPayload {
+  /** YYYY-MM-DD */
+  start_time: string
+  /** YYYY-MM-DD */
+  end_time: string
+  /** HH:mm o HH:mm:ss (franja horaria) */
+  start_hour: string
+  end_hour: string
+  is_available?: boolean
+}
+
+export const timeSlotApi = {
+  listMine: (params?: { from_date?: string; to_date?: string }) =>
+    api.get('/time-slots/me', { params }),
+
+  create: (data: TimeSlotPayload) => api.post('/time-slots/me', data),
+
+  update: (id: number, data: Partial<TimeSlotPayload>) =>
+    api.put(`/time-slots/me/${id}`, data),
+
+  delete: (id: number) => api.delete(`/time-slots/me/${id}`),
+}
+
 export const reportApi = {
   getDashboardSummary: () => api.get('/reports/dashboard-summary'),
 

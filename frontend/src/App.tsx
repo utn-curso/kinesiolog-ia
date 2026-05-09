@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Booking from './pages/Booking'
 import Agenda from './pages/Agenda'
+import Disponibilidad from './pages/Disponibilidad'
 import Profile from './pages/Profile'
 import { Pacientes } from './pages/Pacientes'
 import { Ejercicios } from './pages/Ejercicios'
@@ -27,6 +28,11 @@ function App() {
         <Route path="/agenda" element={
           <ProtectedRoute>
             <Agenda />
+          </ProtectedRoute>
+        } />
+        <Route path="/disponibilidad" element={
+          <ProtectedRoute>
+            <Disponibilidad />
           </ProtectedRoute>
         } />
         <Route path="/pacientes" element={

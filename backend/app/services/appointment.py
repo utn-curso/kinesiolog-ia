@@ -1,15 +1,50 @@
-import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, time, timezone
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_
 from sqlalchemy.orm import joinedload
 
 from app.models.appointment import Appointment, AppointmentStatus
+from app.models.time_slot import TimeSlot
 from app.models.user import User, Kinesiologo
 from app.models.payment import Payment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
 from app.services.notification import NotificationService
+from app.services.time_slot import ZONE_AR, appointment_overlaps_interval
+
+DEFAULT_BOOKING_DURATION_MINUTES = 60
+BOOKING_GRID_STEP_MINUTES = 60
+
+
+def normalize_appointment_start(dt: datetime) -> datetime:
+    if dt.tzinfo is not None:
+        return dt.astimezone(ZONE_AR).replace(tzinfo=None)
+    return dt
+
+
+async def appointment_fully_inside_availability(
+    db: AsyncSession,
+    kinesiologo_id: int,
+    start_naive: datetime,
+    end_naive: datetime,
+) -> bool:
+    day = start_naive.date()
+    result = await db.execute(
+        select(TimeSlot).where(
+            and_(
+                TimeSlot.kinesiologo_id == kinesiologo_id,
+                TimeSlot.is_available.is_(True),
+                TimeSlot.start_time <= day,
+                TimeSlot.end_time >= day,
+            )
+        )
+    )
+    for slot in result.scalars().all():
+        w_start = datetime.combine(day, slot.start_hour)
+        w_end = datetime.combine(day, slot.end_hour)
+        if w_start <= start_naive and end_naive <= w_end:
+            return True
+    return False
 
 
 class AppointmentService:
@@ -77,26 +112,31 @@ class AppointmentService:
         if not kinesiologo or not kinesiologo.is_available:
             raise ValueError("Kinesiologo not available")
 
-        # Check for time conflicts
-        conflict_result = await self.db.execute(
-            select(Appointment).where(
-                and_(
-                    Appointment.kinesiologo_id == appointment_data.kinesiologo_id,
-                    Appointment.date == appointment_data.date,
-                    Appointment.status.in_([AppointmentStatus.PENDING.value, AppointmentStatus.CONFIRMED.value])
-                )
-            )
-        )
-        conflicting_appointment = conflict_result.scalar_one_or_none()
+        duration_minutes = appointment_data.duration_minutes or DEFAULT_BOOKING_DURATION_MINUTES
+        start_naive = normalize_appointment_start(appointment_data.date)
+        end_naive = start_naive + timedelta(minutes=duration_minutes)
 
-        if conflicting_appointment:
+        if not await appointment_fully_inside_availability(
+            self.db,
+            appointment_data.kinesiologo_id,
+            start_naive,
+            end_naive,
+        ):
+            raise ValueError("Time slot not within kinesiologo's availability")
+
+        if await appointment_overlaps_interval(
+            self.db,
+            appointment_data.kinesiologo_id,
+            start_naive,
+            end_naive,
+        ):
             raise ValueError("Time slot not available")
 
         appointment = Appointment(
             patient_id=patient_id,
             kinesiologo_id=appointment_data.kinesiologo_id,
-            date=appointment_data.date,
-            duration_minutes=appointment_data.duration_minutes,
+            date=start_naive,
+            duration_minutes=duration_minutes,
             notes=appointment_data.notes,
             status=AppointmentStatus.PENDING.value
         )
@@ -118,13 +158,12 @@ class AppointmentService:
         # Send confirmation email (async)
         patient_result = await self.db.execute(select(User).where(User.id == patient_id))
         patient = patient_result.scalar_one_or_none()
-        if patient:
-            # Use NotificationService to create and send notification
+        if patient and kinesiologo and kinesiologo.user:
             notif_service = NotificationService(self.db)
             await notif_service.send_appointment_confirmation(
                 appointment=appointment,
                 patient=patient,
-                kinesiologo=kinesiologo.user if kinesiologo else None,
+                kinesiologo=kinesiologo.user,
             )
 
         return appointment
@@ -221,29 +260,46 @@ class AppointmentService:
         return True
 
     async def get_available_slots(self, kinesiologo_id: int, date: datetime) -> List[datetime]:
-        # This would integrate with TimeSlot model, but for now return basic slots
-        # Assuming 9 AM to 5 PM, 1 hour slots
-        start_time = datetime.combine(date.date(), datetime.min.time().replace(hour=9))
-        end_time = datetime.combine(date.date(), datetime.min.time().replace(hour=17))
+        day_date = date.date() if isinstance(date, datetime) else date
+        day_start = datetime.combine(day_date, time.min)
+        day_end = day_start + timedelta(days=1)
 
-        slots = []
-        current = start_time
-        while current < end_time:
-            slots.append(current)
-            current += timedelta(hours=1)
-
-        # Remove booked slots
-        booked_result = await self.db.execute(
-            select(Appointment.date).where(
+        ts_result = await self.db.execute(
+            select(TimeSlot).where(
                 and_(
-                    Appointment.kinesiologo_id == kinesiologo_id,
-                    Appointment.date >= start_time,
-                    Appointment.date < end_time,
-                    Appointment.status.in_([AppointmentStatus.PENDING.value, AppointmentStatus.CONFIRMED.value])
+                    TimeSlot.kinesiologo_id == kinesiologo_id,
+                    TimeSlot.is_available.is_(True),
+                    TimeSlot.start_time <= day_date,
+                    TimeSlot.end_time >= day_date,
                 )
-            )
+            ).order_by(TimeSlot.start_time, TimeSlot.start_hour)
         )
-        booked_times = {row[0] for row in booked_result.all()}
-        available_slots = [slot for slot in slots if slot not in booked_times]
+        time_slots = ts_result.scalars().all()
 
-        return available_slots
+        candidates: List[datetime] = []
+        appt_duration = DEFAULT_BOOKING_DURATION_MINUTES
+        duration_td = timedelta(minutes=appt_duration)
+        step = timedelta(minutes=BOOKING_GRID_STEP_MINUTES)
+
+        for slot in time_slots:
+            slot_start = datetime.combine(day_date, slot.start_hour)
+            slot_end = datetime.combine(day_date, slot.end_hour)
+            t = slot_start
+            while True:
+                block_end = t + duration_td
+                if block_end > slot_end:
+                    break
+                if block_end.date() != day_date or t.date() != day_date:
+                    t += step
+                    continue
+                if t >= day_start and block_end <= day_end:
+                    if not await appointment_overlaps_interval(
+                        self.db,
+                        kinesiologo_id,
+                        t,
+                        block_end,
+                    ):
+                        candidates.append(t)
+                t += step
+
+        return sorted(set(candidates))

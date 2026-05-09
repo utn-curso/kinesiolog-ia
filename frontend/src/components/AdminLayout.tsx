@@ -100,6 +100,11 @@ export function AdminLayout({ children, pageTitle = 'Dashboard', topbarRight }: 
         <NavLink to="/agenda" className={navItemClass}>
           <span className="text-sm">📅</span> Turnos
         </NavLink>
+        {user?.role === 'kinesiologo' && (
+          <NavLink to="/disponibilidad" className={navItemClass}>
+            <span className="text-sm">🕐</span> Mis horarios
+          </NavLink>
+        )}
         <NavLink to="/profile" className={navItemClass}>
           <span className="text-sm">👤</span> Perfil
         </NavLink>

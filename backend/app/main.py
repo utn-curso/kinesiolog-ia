@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(application: FastAPI):
     """Handle application startup and shutdown events"""
     # Startup
     logger.info("Starting KineMov API...")
@@ -43,9 +43,10 @@ async def lifespan(app: FastAPI):
         while True:
             try:
                 async with async_session() as session:
-                    now = datetime.now(timezone.utc)
-                    window_start = now + timedelta(hours=23)
-                    window_end = now + timedelta(hours=25)
+                    # Columnas TIMESTAMP WITHOUT TIME ZONE → asyncpg requiere datetimes naive
+                    now_naive = datetime.now(timezone.utc).replace(tzinfo=None)
+                    window_start = now_naive + timedelta(hours=23)
+                    window_end = now_naive + timedelta(hours=25)
 
                     result = await session.execute(
                         select(Appointment).where(
@@ -88,8 +89,6 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_reminder_loop())
     except Exception:
         logger.exception("Failed to start reminder loop")
-
-    logger.info("Database tables created/verified")
 
     yield
 

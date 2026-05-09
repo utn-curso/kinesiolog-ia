@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.appointment import AppointmentStatus
 from app.schemas.appointment import AppointmentOut, AppointmentCreate, AppointmentUpdate
-from app.services.appointment import AppointmentService
+from app.services.appointment import AppointmentService, DEFAULT_BOOKING_DURATION_MINUTES
 from app.middlewares.auth import get_current_user
 from app.models.user import User
 from app.models.appointment import Appointment as AppointmentModel
@@ -62,7 +62,10 @@ async def get_available_slots(
 
     service = AppointmentService(db)
     slots = await service.get_available_slots(kinesiologo_id, slot_date)
-    return {"available_slots": [slot.isoformat() for slot in slots]}
+    return {
+        "available_slots": [slot.isoformat() for slot in slots],
+        "appointment_duration_minutes": DEFAULT_BOOKING_DURATION_MINUTES,
+    }
 
 
 @router.get("/{appointment_id}", response_model=AppointmentOut)
