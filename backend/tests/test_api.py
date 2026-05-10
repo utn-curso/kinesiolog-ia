@@ -1,58 +1,11 @@
 # Tests para KineMov Backend
 # Ejecutar con: pytest
 
-import os
 import pytest
-import pytest_asyncio
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from app.main import app
-from app.database import get_db, Base
+pytestmark = pytest.mark.integration
 
-# Configuración de base de datos de test
-TEST_DB_PATH = "test_kinemov.db"
-TEST_DATABASE_URL = f"sqlite+aiosqlite:///./{TEST_DB_PATH}"
-
-
-@pytest_asyncio.fixture()
-async def client():
-    """Create async test client with isolated test database"""
-    # Clean up any leftover test database
-    if os.path.exists(TEST_DB_PATH):
-        try:
-            os.remove(TEST_DB_PATH)
-        except OSError:
-            pass
-
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
-
-    # Create tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    # Create async session factory
-    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    async def override_get_db():
-        async with session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
-
-    app.dependency_overrides.clear()
-
-    # Cleanup
-    await engine.dispose()
-    if os.path.exists(TEST_DB_PATH):
-        try:
-            os.remove(TEST_DB_PATH)
-        except OSError:
-            pass
+from httpx import AsyncClient
 
 
 # --- Helper functions ---

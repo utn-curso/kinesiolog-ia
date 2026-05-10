@@ -91,7 +91,7 @@ export function Ejercicios() {
 
   const extractYouTubeId = (url: string) => {
     if (!url) return null;
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/i;
     const match = url.match(regex);
     return match ? match[1] : null;
   };

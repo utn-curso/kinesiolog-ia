@@ -34,6 +34,7 @@ build/
 .vite/
 .turbo/
 .parcel-cache/
+frontend/coverage/
 
 # Secrets (keep *.example tracked)
 .env
