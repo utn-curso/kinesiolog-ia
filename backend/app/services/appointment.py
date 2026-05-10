@@ -207,7 +207,8 @@ class AppointmentService:
             if payment:
                 payment.status = "refunded" if payment.status == "completed" else "cancelled"
 
-        appointment.updated_at = datetime.now(timezone.utc)
+        # PostgreSQL TIMESTAMP WITHOUT TIME ZONE / asyncpg: evitar datetimes con tz (error al commitear).
+        appointment.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await self.db.commit()
         await self.db.refresh(appointment)
 
@@ -223,12 +224,13 @@ class AppointmentService:
                 select(Kinesiologo).options(joinedload(Kinesiologo.user)).where(Kinesiologo.id == appointment.kinesiologo_id)
             )
             kinesiologo = kinesiologo_result.scalar_one_or_none()
-            if patient and kinesiologo and patient.phone:
+            kin_user = kinesiologo.user if kinesiologo else None
+            if patient and kin_user:
                 notif_service = NotificationService(self.db)
                 await notif_service.send_appointment_cancellation(
                     appointment=appointment,
                     patient=patient,
-                    kinesiologo=kinesiologo.user if kinesiologo else None,
+                    kinesiologo=kin_user,
                 )
         
         # If date changed, send reschedule notification
