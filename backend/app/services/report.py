@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import Dict, List, Literal, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, or_
+from sqlalchemy import select, and_
 from sqlalchemy.orm import joinedload
 
 from app.models.report import Report, ReportType
@@ -12,9 +12,79 @@ from app.schemas.report import ReportCreate, ReportFilters, MonthlyReportRespons
 from sqlalchemy import func
 
 
+def _naive_dt(dt: datetime) -> datetime:
+    """SQLite/ Postgres TIMESTAMP WITHOUT TIME ZONE: comparar solo con naive (evita asyncpg aware/naive)."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
+def _month_bounds_naive(year: int, month: int) -> Tuple[datetime, datetime]:
+    start = datetime(year, month, 1)
+    if month == 12:
+        end = datetime(year + 1, 1, 1)
+    else:
+        end = datetime(year, month + 1, 1)
+    return start, end
+
+
 class ReportService:
     def __init__(self, db: AsyncSession):
         self.db = db
+
+    async def count_patients_first_appointment_with_kinesiolog_in_range(
+        self,
+        kinesiologo_id: int,
+        period_start: datetime,
+        period_end: datetime,
+    ) -> int:
+        """
+        Pacientes cuya primera cita **con este kinesiólogo** cae en [period_start, period_end).
+        """
+        ps, pe = _naive_dt(period_start), _naive_dt(period_end)
+
+        subq = (
+            select(Appointment.patient_id, func.min(Appointment.date).label("first_dt"))
+            .where(Appointment.kinesiologo_id == kinesiologo_id)
+            .group_by(Appointment.patient_id)
+            .subquery()
+        )
+        stmt = (
+            select(func.count())
+            .select_from(subq)
+            .where(and_(subq.c.first_dt >= ps, subq.c.first_dt < pe))
+        )
+        result = await self.db.execute(stmt)
+        return int(result.scalar() or 0)
+
+    async def get_new_patients_vs_previous_period(
+        self,
+        kinesiologo_id: int,
+        view: Literal["week", "month"],
+    ) -> Dict[str, int]:
+        """Semana: ventana rodante de 7 días. Mes: mes calendario actual vs mes calendario anterior."""
+        now = datetime.now()
+
+        if view == "week":
+            curr_start = now - timedelta(days=7)
+            curr_end = now
+            prev_start = now - timedelta(days=14)
+            prev_end = now - timedelta(days=7)
+        else:
+            y, m = now.year, now.month
+            curr_start, curr_end = _month_bounds_naive(y, m)
+            if m == 1:
+                prev_start, prev_end = _month_bounds_naive(y - 1, 12)
+            else:
+                prev_start, prev_end = _month_bounds_naive(y, m - 1)
+
+        current_count = await self.count_patients_first_appointment_with_kinesiolog_in_range(
+            kinesiologo_id, curr_start, curr_end
+        )
+        previous_count = await self.count_patients_first_appointment_with_kinesiolog_in_range(
+            kinesiologo_id, prev_start, prev_end
+        )
+        return {"current": current_count, "previous": previous_count}
 
     async def get_monthly_report_data(
         self,
@@ -23,13 +93,7 @@ class ReportService:
         month: int
     ) -> dict:
         """Calcula datos de reporte mensual en tiempo real desde appointments"""
-        # Construir fechas del mes
-        if month == 12:
-            period_start = datetime(year, month, 1, tzinfo=timezone.utc)
-            period_end = datetime(year + 1, 1, 1, tzinfo=timezone.utc)
-        else:
-            period_start = datetime(year, month, 1, tzinfo=timezone.utc)
-            period_end = datetime(year, month + 1, 1, tzinfo=timezone.utc)
+        period_start, period_end = _month_bounds_naive(year, month)
 
         # Obtener todas las citas del kinesiólogo en el período
         result = await self.db.execute(
@@ -83,6 +147,8 @@ class ReportService:
         period_end: datetime
     ) -> dict:
         """Calcula datos de reporte custom en período específico"""
+        period_start = _naive_dt(period_start)
+        period_end = _naive_dt(period_end)
         result = await self.db.execute(
             select(Appointment).where(
                 and_(
@@ -223,7 +289,7 @@ class ReportService:
                 joinedload(Kinesiologo.user)
             )
         )
-        kinesiologo = result.scalar_one_or_none()
+        kinesiologo = result.unique().scalar_one_or_none()
         if not kinesiologo:
             raise ValueError(f"Kinesiólogo {kinesiologo_id} no encontrado")
 
@@ -232,7 +298,7 @@ class ReportService:
 
         return MonthlyReportResponse(
             kinesiologo_id=kinesiologo_id,
-            kinesiologo_name=kinesiologo.user.full_name,
+            kinesiologo_name=kinesiologo.user.full_name if kinesiologo.user else "—",
             period_start=report_data["period_start"],
             period_end=report_data["period_end"],
             total_appointments=report_data["total_appointments"],
@@ -241,7 +307,7 @@ class ReportService:
             pending_appointments=report_data["pending_appointments"],
             completion_rate=report_data["completion_rate"],
             total_revenue=report_data["total_revenue"],
-            generated_at=datetime.now(timezone.utc)
+            generated_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
 
     async def delete_report(self, report_id: int) -> bool:
