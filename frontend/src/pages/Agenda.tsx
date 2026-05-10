@@ -251,7 +251,15 @@ export default function Agenda() {
               <button onClick={() => setView('week')} className={`px-4 py-1.5 font-bold text-[13px] border-r border-slate-200 transition-colors ${view === 'week' ? 'bg-slate-100 text-slate-900 font-black' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>Semana</button>
               <button onClick={() => setView('month')} className={`px-4 py-1.5 font-bold text-[13px] transition-colors ${view === 'month' ? 'bg-slate-100 text-slate-900 font-black' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>Mes</button>
             </div>
-            <button onClick={() => navigate('/booking')} className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-bold text-[13px] transition-colors shadow-sm">+ Nuevo turno</button>
+            {(user?.role === 'patient' || user?.role === 'admin') && (
+              <button
+                type="button"
+                onClick={() => navigate('/booking')}
+                className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-bold text-[13px] transition-colors shadow-sm"
+              >
+                + Nuevo turno
+              </button>
+            )}
           </div>
         </div>
 

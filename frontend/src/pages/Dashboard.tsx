@@ -65,17 +65,19 @@ export default function Dashboard() {
       const fetchSummary = async () => {
         setSummaryLoading(true)
         try {
-          const { data } = await reportApi.getDashboardSummary()
+          const { data } = await reportApi.getDashboardSummary({
+            period: timeRange === 'week' ? 'week' : 'month',
+          })
           setDashboardSummary(data)
         } catch (err) {
-          console.error("Error fetching summary:", err)
+          console.error('Error fetching summary:', err)
         } finally {
           setSummaryLoading(false)
         }
       }
       fetchSummary()
     }
-  }, [user])
+  }, [user, timeRange])
 
   // Patient Dashboard View
   if (user?.role === 'patient') {
@@ -287,6 +289,15 @@ export default function Dashboard() {
   const chartLabels = timeRange === 'month' ? monthLabels : weekLabels;
   const maxVal = Math.max(...chartData, 1000) * 1.15;
 
+  const newPatientsCurrent = dashboardSummary?.new_patients?.current as number | undefined;
+  const newPatientsPrevious = dashboardSummary?.new_patients?.previous as number | undefined;
+  const newPatientsDeltaPct =
+    newPatientsPrevious !== undefined &&
+    newPatientsCurrent !== undefined &&
+    newPatientsPrevious > 0
+      ? Math.round(((newPatientsCurrent - newPatientsPrevious) / newPatientsPrevious) * 100)
+      : null;
+
   // Real data logic: Filter appointments by date
   const now = new Date();
   const oneWeekAgo = new Date();
@@ -351,10 +362,48 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
             <div className="flex justify-between items-start mb-3">
               <div className="w-10 h-10 rounded-lg flex items-center justify-center text-lg bg-blue-50">👥</div>
-              <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-green-50 text-green-600">↑ 5%</span>
+              {newPatientsDeltaPct !== null && (
+                <span
+                  className={`text-[11px] font-extrabold px-2 py-0.5 rounded-full ${
+                    newPatientsDeltaPct > 0
+                      ? 'bg-green-50 text-green-600'
+                      : newPatientsDeltaPct < 0
+                        ? 'bg-red-50 text-red-600'
+                        : 'bg-slate-50 text-slate-500'
+                  }`}
+                >
+                  {newPatientsDeltaPct > 0 ? '↑ ' : newPatientsDeltaPct < 0 ? '↓ ' : ''}
+                  {newPatientsDeltaPct}%
+                </span>
+              )}
+              {newPatientsDeltaPct === null &&
+                !summaryLoading &&
+                newPatientsPrevious === 0 &&
+                (newPatientsCurrent ?? 0) > 0 && (
+                  <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-teal-50 text-teal-600">
+                    nuevo
+                  </span>
+                )}
             </div>
-            <div className="text-3xl font-black leading-none text-slate-800">{timeRange === 'month' ? '34' : '8'}</div>
+            <div className="text-3xl font-black leading-none text-slate-800">
+              {typeof newPatientsCurrent === 'number' ? newPatientsCurrent : summaryLoading ? '…' : '—'}
+            </div>
             <div className="text-xs text-slate-500 font-bold mt-1">Pacientes nuevos</div>
+            <div className="text-[11px] text-slate-400 mt-2 font-medium">
+              Período anterior:{' '}
+              {typeof newPatientsPrevious === 'number'
+                ? newPatientsPrevious
+                : summaryLoading
+                  ? '…'
+                  : '—'}
+              <span className="text-slate-300 ml-1">
+                (
+                {timeRange === 'week'
+                  ? '7 días corridos vs 7 días prev.'
+                  : 'mes calendario anterior'}
+                )
+              </span>
+            </div>
           </div>
           <div className="bg-white rounded-xl p-5 border border-slate-200 hover:shadow-sm transition-shadow">
             <div className="flex justify-between items-start mb-3">

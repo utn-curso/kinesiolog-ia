@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,6 +20,11 @@ from app.schemas.report import (
 from app.services.report import ReportService
 
 router = APIRouter()
+
+
+class DashboardPeriod(str, Enum):
+    week = "week"
+    month = "month"
 
 
 async def get_user_kinesiologo(db: AsyncSession, user_id: int) -> Optional[Kinesiologo]:
@@ -47,8 +53,12 @@ async def validate_kinesiologo_access(
 
 @router.get("/dashboard-summary")
 async def get_dashboard_summary(
+    period: DashboardPeriod = Query(
+        DashboardPeriod.month,
+        description="Semana = 7 días corridos; Mes = mes calendario actual vs mes calendario anterior",
+    ),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """Obtiene resumen de datos para el dashboard del kinesiólogo"""
     if current_user.role == "patient":
@@ -108,6 +118,9 @@ async def get_dashboard_summary(
     # 3. Stats for current month
     current_stats = await service.get_monthly_report_data(kinesiologo_id, now.year, now.month)
 
+    # 4. Pacientes nuevos: primer turno con este kin en período vs período anterior
+    np = await service.get_new_patients_vs_previous_period(kinesiologo_id, period.value)
+
     return {
         "revenue_trend": revenue_trend,
         "recent_activity": [
@@ -119,7 +132,8 @@ async def get_dashboard_summary(
                 "created_at": n.created_at
             } for n in recent_activity
         ],
-        "stats": current_stats
+        "stats": current_stats,
+        "new_patients": {"current": np["current"], "previous": np["previous"], "period": period.value},
     }
 
 

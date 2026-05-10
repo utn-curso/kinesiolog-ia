@@ -132,7 +132,8 @@ export const timeSlotApi = {
 }
 
 export const reportApi = {
-  getDashboardSummary: () => api.get('/reports/dashboard-summary'),
+  getDashboardSummary: (params?: { period?: 'week' | 'month' }) =>
+    api.get('/reports/dashboard-summary', { params }),
 
   getMonthlyReport: (params: { year: number; month: number; kinesiologo_id?: number }) =>
     api.get('/reports/monthly', { params }),
