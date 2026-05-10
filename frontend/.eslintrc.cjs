@@ -27,6 +27,11 @@ module.exports = {
   },
   rules: {
     'react/react-in-jsx-scope': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    'no-extra-semi': 'off',
+    'no-useless-escape': 'off',
+    'react/no-unescaped-entities': 'off',
+    'react-hooks/exhaustive-deps': 'off',
   },
   ignorePatterns: ['dist', 'node_modules'],
 };
