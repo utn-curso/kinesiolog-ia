@@ -296,7 +296,10 @@ Equipo KineMov
         # Actualizar registro de notificación
         try:
             notification.sent = success
-            notification.sent_at = datetime.now(timezone.utc) if success else None
+            # Columnas TIMESTAMP WITHOUT TIME ZONE (PostgreSQL): usar naive UTC, no tz-aware (asyncpg falla si mezcla).
+            notification.sent_at = (
+                datetime.now(timezone.utc).replace(tzinfo=None) if success else None
+            )
             if error_messages:
                 notification.error_message = "; ".join(error_messages)
 
