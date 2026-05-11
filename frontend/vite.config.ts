@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
@@ -15,9 +15,18 @@ export default defineConfig({
     port: 5173,
     proxy: { ...apiProxy },
   },
-  // `vite preview` does not inherit `server.proxy`; without this, /api/* hits the static server (404).
   preview: {
     port: 5173,
     proxy: { ...apiProxy },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html', 'lcov'],
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**'],
+    },
   },
 })

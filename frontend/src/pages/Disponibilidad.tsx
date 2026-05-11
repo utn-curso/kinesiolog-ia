@@ -68,7 +68,7 @@ export default function Disponibilidad() {
       navigate('/dashboard', { replace: true })
       return
     }
-    ;(async () => {
+    void (async () => {
       setLoading(true)
       try {
         const { data } = await timeSlotApi.listMine()
